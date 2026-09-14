@@ -126,4 +126,4 @@ Run the automated test suite with:
 ```bash
 pytest tests/ -v
 ```
-All 36 unit tests pass with 100% compliance.
+All 49 unit and integration tests pass with 100% compliance.

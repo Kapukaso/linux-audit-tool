@@ -35,10 +35,27 @@ class SensitiveDataFilter(logging.Filter):
             record.msg = self.sanitize(record.msg)
         if record.args:
             if isinstance(record.args, dict):
-                record.args = {k: self.sanitize(str(v)) for k, v in record.args.items()}
+                record.args = self._sanitize_dict(record.args)
             elif isinstance(record.args, tuple):
-                record.args = tuple(self.sanitize(str(arg)) for arg in record.args)
+                cleaned = []
+                for arg in record.args:
+                    if isinstance(arg, dict):
+                        cleaned.append(self._sanitize_dict(arg))
+                    else:
+                        cleaned.append(self.sanitize(str(arg)))
+                record.args = tuple(cleaned)
         return True
+
+    @classmethod
+    def _sanitize_dict(cls, d: dict) -> dict:
+        result = {}
+        for k, v in d.items():
+            k_lower = str(k).lower()
+            if any(s in k_lower for s in ["password", "secret", "token", "api_key", "apikey"]):
+                result[k] = "[REDACTED]"
+            else:
+                result[k] = cls.sanitize(str(v))
+        return result
 
     @staticmethod
     def sanitize(text: str) -> str:
