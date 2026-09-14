@@ -72,10 +72,26 @@ python secureaudit.py --verbose audit
 
 ---
 
-## 5. Testing
+## 5. Inspection Modules (Phase 3)
+
+`secureaudit` includes 8 specialized inspection modules coordinated by the [`AuditEngine`](file:///C:/Users/dell/Projects/Linux%20Audit%20Tool/src/core/engine.py):
+
+1. **System Information (`system_info.py`):** Collects hostname, OS version, kernel release, architecture, CPU model, memory, disk, and network interfaces.
+2. **User & Privilege Audit (`user_audit.py`):** Audits UID 0 accounts, passwordless accounts in `/etc/shadow`, root account status, system account login shells, and `/etc/login.defs` password expiration policies.
+3. **SSH Security Audit (`ssh_audit.py`):** Evaluates `sshd_config` and drop-in `.conf` files for `PermitRootLogin`, `PasswordAuthentication`, `PermitEmptyPasswords`, `MaxAuthTries`, `X11Forwarding`, and `Protocol`.
+4. **Filesystem Security Audit (`filesystem_audit.py`):** Checks POSIX mode and ownership on `/etc/passwd`, `/etc/shadow`, `/etc/group`, `/etc/gshadow`, scans target paths for world-writable files, and audits SUID/SGID binaries.
+5. **Firewall Security Audit (`firewall_audit.py`):** Evaluates UFW status, default incoming/outgoing policies, iptables fallbacks, and verifies anti-lockout SSH rules.
+6. **Network Security Audit (`network_audit.py`):** Checks for unencrypted legacy ports (FTP, Telnet, TFTP, r-services), promiscuous interface flags, and sysctl parameters (`ip_forward`, `accept_redirects`, `log_martians`).
+7. **Service & Daemon Audit (`service_audit.py`):** Detects active obsolete daemons (`telnetd`, `rshd`, `xinetd`, `vsftpd`).
+8. **Patch & Update Audit (`patch_audit.py`):** Queries pending APT security updates and `unattended-upgrades` status.
+9. **Logging & Accounting Audit (`logging_audit.py`):** Verifies `rsyslog`, `systemd-journald`, `auditd` services, and tracks recent PAM/SSH failed authentication attempt spikes.
+
+---
+
+## 6. Testing
 Run the automated test suite with:
 ```bash
 pytest tests/ -v
 ```
-All 12 foundation tests pass with 100% compliance.
+All 22 unit tests pass with 100% compliance.
 "# linux-audit-tool" 
