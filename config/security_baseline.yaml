@@ -1,0 +1,319 @@
+version: "1.0"
+benchmark_name: "SmartED Linux Hardening Baseline"
+author: "Kartik Soni"
+description: "Comprehensive CIS-aligned security baseline for Ubuntu/Debian Linux systems"
+
+categories:
+  system_info:
+    name: "System Information & Kernel"
+    weight: 5
+  user_security:
+    name: "User & Privilege Management"
+    weight: 20
+  network_security:
+    name: "Network & Port Security"
+    weight: 15
+  service_security:
+    name: "Services & Daemons"
+    weight: 10
+  filesystem_security:
+    name: "Filesystem & Permissions"
+    weight: 15
+  ssh_security:
+    name: "SSH Server Hardening"
+    weight: 15
+  firewall_security:
+    name: "Host Firewall"
+    weight: 10
+  patch_security:
+    name: "Patch & Vulnerability Management"
+    weight: 5
+  logging_security:
+    name: "Logging & Accounting"
+    weight: 5
+
+checks:
+  # ==========================================
+  # Category: User & Privilege Security
+  # ==========================================
+  - id: "USR-001"
+    category: "user_security"
+    title: "Verify UID 0 is assigned exclusively to the root account"
+    description: "No account other than root should have UID 0 to prevent unauthorized superuser access."
+    severity: "CRITICAL"
+    remediable: false
+    expected: ["root"]
+
+  - id: "USR-002"
+    category: "user_security"
+    title: "Verify no accounts have empty password fields"
+    description: "Accounts with empty password hashes in /etc/shadow allow unauthenticated login."
+    severity: "CRITICAL"
+    remediable: true
+    expected: 0
+
+  - id: "USR-003"
+    category: "user_security"
+    title: "Verify root account status and lock status"
+    description: "On modern Debian/Ubuntu servers, direct root login should be disabled with password locked."
+    severity: "MEDIUM"
+    remediable: false
+    expected: "L"
+
+  - id: "USR-004"
+    category: "user_security"
+    title: "Check for non-system accounts with interactive login shells"
+    description: "System service accounts should use non-interactive shells like /usr/sbin/nologin or /bin/false."
+    severity: "MEDIUM"
+    remediable: true
+    expected_non_login_shells:
+      - "/usr/sbin/nologin"
+      - "/bin/false"
+      - "/sbin/nologin"
+
+  - id: "USR-005"
+    category: "user_security"
+    title: "Verify password expiration policy in /etc/login.defs"
+    description: "Password maximum age should be configured to 90 days or fewer."
+    severity: "LOW"
+    parameter: "PASS_MAX_DAYS"
+    max_days: 90
+    remediable: true
+
+  # ==========================================
+  # Category: SSH Server Hardening
+  # ==========================================
+  - id: "SSH-001"
+    category: "ssh_security"
+    title: "Ensure SSH Root Login is disabled"
+    description: "Direct remote root login over SSH should be prohibited to enforce non-repudiation."
+    severity: "HIGH"
+    parameter: "PermitRootLogin"
+    expected: "no"
+    remediable: true
+
+  - id: "SSH-002"
+    category: "ssh_security"
+    title: "Ensure SSH Password Authentication is restricted"
+    description: "Public key authentication should be used instead of passwords where possible."
+    severity: "HIGH"
+    parameter: "PasswordAuthentication"
+    expected: "no"
+    remediable: true
+
+  - id: "SSH-003"
+    category: "ssh_security"
+    title: "Ensure SSH PermitEmptyPasswords is set to no"
+    description: "Disallow login to accounts with empty passwords over SSH."
+    severity: "CRITICAL"
+    parameter: "PermitEmptyPasswords"
+    expected: "no"
+    remediable: true
+
+  - id: "SSH-004"
+    category: "ssh_security"
+    title: "Ensure SSH MaxAuthTries is set to 4 or fewer"
+    description: "Limiting authentication attempts mitigates brute-force attacks against SSH."
+    severity: "MEDIUM"
+    parameter: "MaxAuthTries"
+    expected_max: 4
+    remediable: true
+
+  - id: "SSH-005"
+    category: "ssh_security"
+    title: "Ensure SSH X11Forwarding is disabled"
+    description: "Disabling X11 forwarding prevents GUI hijacking across remote SSH sessions."
+    severity: "LOW"
+    parameter: "X11Forwarding"
+    expected: "no"
+    remediable: true
+
+  - id: "SSH-006"
+    category: "ssh_security"
+    title: "Ensure SSH Protocol version is strictly 2"
+    description: "Legacy SSH version 1 contains known cryptographic weaknesses."
+    severity: "HIGH"
+    parameter: "Protocol"
+    expected: "2"
+    remediable: true
+
+  # ==========================================
+  # Category: Filesystem & Permissions
+  # ==========================================
+  - id: "FS-001"
+    category: "filesystem_security"
+    title: "Verify permissions and ownership of /etc/passwd"
+    description: "/etc/passwd must be owned by root and readable by all, but writable only by root (0644)."
+    severity: "HIGH"
+    path: "/etc/passwd"
+    expected_perms: "0644"
+    expected_owner: "root"
+    expected_group: "root"
+    remediable: true
+
+  - id: "FS-002"
+    category: "filesystem_security"
+    title: "Verify permissions and ownership of /etc/shadow"
+    description: "/etc/shadow stores password hashes and must be restricted to root or shadow group (0640 or 0600)."
+    severity: "CRITICAL"
+    path: "/etc/shadow"
+    allowed_perms: ["0640", "0600", "0000"]
+    expected_owner: "root"
+    remediable: true
+
+  - id: "FS-003"
+    category: "filesystem_security"
+    title: "Verify permissions and ownership of /etc/group"
+    description: "/etc/group must be owned by root and writable only by root (0644)."
+    severity: "MEDIUM"
+    path: "/etc/group"
+    expected_perms: "0644"
+    expected_owner: "root"
+    remediable: true
+
+  - id: "FS-004"
+    category: "filesystem_security"
+    title: "Verify permissions and ownership of /etc/gshadow"
+    description: "/etc/gshadow must be restricted (0640 or 0600)."
+    severity: "HIGH"
+    path: "/etc/gshadow"
+    allowed_perms: ["0640", "0600", "0000"]
+    expected_owner: "root"
+    remediable: true
+
+  - id: "FS-005"
+    category: "filesystem_security"
+    title: "Check for unconfined world-writable files in common paths"
+    description: "Files writable by everyone can be modified by unprivileged local attackers."
+    severity: "MEDIUM"
+    scan_paths: ["/etc", "/var/tmp", "/tmp", "/opt", "/srv"]
+    remediable: true
+
+  - id: "FS-006"
+    category: "filesystem_security"
+    title: "Audit unauthorized SUID/SGID binaries in standard directories"
+    description: "SUID binaries execute with superuser privileges and can be exploited for privilege escalation."
+    severity: "MEDIUM"
+    scan_paths: ["/bin", "/sbin", "/usr/bin", "/usr/sbin", "/tmp", "/var/tmp"]
+    remediable: false
+
+  # ==========================================
+  # Category: Host Firewall (UFW / iptables)
+  # ==========================================
+  - id: "FW-001"
+    category: "firewall_security"
+    title: "Ensure host firewall (UFW) is active and running"
+    description: "An active firewall blocks unauthorized network packets and prevents service enumeration."
+    severity: "HIGH"
+    expected: "active"
+    remediable: true
+
+  - id: "FW-002"
+    category: "firewall_security"
+    title: "Ensure default incoming firewall policy is deny or reject"
+    description: "Default ingress policy should drop or reject incoming packets unless explicitly allowed."
+    severity: "HIGH"
+    expected: "deny"
+    remediable: true
+
+  - id: "FW-003"
+    category: "firewall_security"
+    title: "Ensure SSH port is explicitly allowed before enabling firewall"
+    description: "Prevents administrator lockout when activating the firewall."
+    severity: "CRITICAL"
+    remediable: true
+
+  # ==========================================
+  # Category: Network Security & Open Ports
+  # ==========================================
+  - id: "NET-001"
+    category: "network_security"
+    title: "Check for unencrypted legacy service ports listening on all interfaces"
+    description: "Legacy services like telnet (23), ftp (21), rsh (514), and http (80) transmit data in cleartext."
+    severity: "HIGH"
+    prohibited_ports: [21, 23, 69, 512, 513, 514]
+    remediable: false
+
+  - id: "NET-002"
+    category: "network_security"
+    title: "Verify no network interfaces are operating in promiscuous mode"
+    description: "Promiscuous mode indicates packet sniffing or network surveillance activity."
+    severity: "HIGH"
+    remediable: false
+
+  - id: "NET-003"
+    category: "network_security"
+    title: "Verify kernel sysctl network hardening settings"
+    description: "IP forwarding should be disabled and ICMP redirects ignored on non-router hosts."
+    severity: "MEDIUM"
+    sysctl_settings:
+      "net.ipv4.ip_forward": "0"
+      "net.ipv4.conf.all.send_redirects": "0"
+      "net.ipv4.conf.default.send_redirects": "0"
+      "net.ipv4.conf.all.accept_redirects": "0"
+      "net.ipv4.conf.all.accept_source_route": "0"
+      "net.ipv4.conf.all.log_martians": "1"
+    remediable: true
+
+  # ==========================================
+  # Category: Services & Daemons
+  # ==========================================
+  - id: "SRV-001"
+    category: "service_security"
+    title: "Ensure obsolete services are masked or not installed"
+    description: "Legacy daemons like telnetd, rsh-server, vsftpd, and inetd should not run."
+    severity: "MEDIUM"
+    disallowed_services:
+      - "telnet"
+      - "telnetd"
+      - "rsh"
+      - "rlogin"
+      - "nis"
+      - "tftp"
+      - "xinetd"
+    remediable: true
+
+  # ==========================================
+  # Category: Patch & Update Management
+  # ==========================================
+  - id: "PTC-001"
+    category: "patch_security"
+    title: "Check for pending security package updates via package manager"
+    description: "Unpatched vulnerabilities in system packages can lead to arbitrary code execution."
+    severity: "HIGH"
+    remediable: false
+
+  - id: "PTC-002"
+    category: "patch_security"
+    title: "Check if unattended-upgrades is installed and enabled"
+    description: "Automatic security updates ensure critical CVEs are patched in a timely manner."
+    severity: "LOW"
+    package_name: "unattended-upgrades"
+    remediable: true
+
+  # ==========================================
+  # Category: Logging & Accounting
+  # ==========================================
+  - id: "LOG-001"
+    category: "logging_security"
+    title: "Verify system logging daemon (rsyslog or systemd-journald) is active"
+    description: "Continuous event logging is essential for incident response and forensic analysis."
+    severity: "HIGH"
+    services: ["rsyslog", "systemd-journald"]
+    remediable: true
+
+  - id: "LOG-002"
+    category: "logging_security"
+    title: "Verify auditd (Linux Audit Daemon) is installed and active"
+    description: "Auditd provides detailed kernel-level security event logging."
+    severity: "MEDIUM"
+    service_name: "auditd"
+    remediable: true
+
+  - id: "LOG-003"
+    category: "logging_security"
+    title: "Check for excessive failed login attempts in recent auth logs"
+    description: "Spikes in failed logins indicate active brute-force or credential stuffing attacks."
+    severity: "MEDIUM"
+    failure_threshold: 25
+    remediable: false
