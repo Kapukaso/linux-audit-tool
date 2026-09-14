@@ -133,11 +133,32 @@ def test_logging_audit_module():
     assert "LOG-003" in ids
 
 
+def test_ssh_audit_module_insecure(tmp_path):
+    """Verifies SSH audit module correctly flags insecure configuration values with Status.FAIL."""
+    sshd_conf = tmp_path / "sshd_config"
+    sshd_conf.write_text(
+        "PermitRootLogin yes\n"
+        "PasswordAuthentication yes\n"
+        "PermitEmptyPasswords yes\n"
+        "MaxAuthTries 10\n"
+        "X11Forwarding yes\n"
+        "Protocol 1\n",
+        encoding="utf-8"
+    )
+
+    ssh_mod = SshAuditModule(config_path=str(sshd_conf))
+    findings = ssh_mod.audit_all()
+
+    assert len(findings) == 6
+    for f in findings:
+        assert f.status in [Status.FAIL, Status.WARN], f"Check {f.check_id} failed to flag insecure setting: {f.evidence}"
+
+
 def test_audit_engine_full_run(baseline_manager):
     """Verifies AuditEngine orchestration across all categories."""
     engine = AuditEngine(baseline_manager)
     report = engine.run_audit("all")
 
-    assert len(report.findings) >= 28
+    assert len(report.findings) == 29
     assert report.summary["total"] == len(report.findings)
     assert report.system_meta.hostname != ""

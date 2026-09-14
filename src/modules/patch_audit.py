@@ -7,7 +7,6 @@ Checks:
 - PTC-002: Unattended-upgrades package installation and service status
 """
 
-import re
 from typing import Any, Dict, List, Optional
 
 from src.core.logger import AuditLogger

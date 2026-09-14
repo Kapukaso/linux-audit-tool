@@ -55,7 +55,7 @@ class AuditEngine:
 
         # SSH Security
         if target_cat in ["all", "ssh_security"]:
-            ssh_mod = SshAuditModule()
+            ssh_mod = SshAuditModule(self.baseline_mgr.get_checks_by_category("ssh_security"))
             findings.extend(ssh_mod.audit_all())
 
         # Filesystem Security

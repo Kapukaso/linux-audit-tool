@@ -8,7 +8,7 @@ Remediates POSIX permissions and ownership on critical system files and strips w
 import os
 import stat
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from src.core.logger import AuditLogger
 from src.core.utils import get_file_metadata

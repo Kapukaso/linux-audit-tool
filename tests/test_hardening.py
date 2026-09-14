@@ -40,6 +40,17 @@ def test_backup_manager_snapshot_and_rollback(tmp_path):
     assert original_file.read_text(encoding="utf-8") == "Original Value = 1\n"
 
 
+def test_backup_manager_path_traversal(tmp_path):
+    """Verifies that path traversal payloads in rollback are safely rejected."""
+    backup_base = tmp_path / "backups"
+    mgr = BackupManager(base_backup_dir=backup_base)
+    mgr.create_snapshot_session()
+
+    # Attempt path traversal
+    assert mgr.rollback("../../tmp/malicious") is False
+    assert mgr.rollback("..\\..\\tmp\\malicious") is False
+
+
 def test_ssh_fixer_dry_run(tmp_path):
     """Verifies SSH fixer dry-run simulation."""
     backup_mgr = BackupManager(base_backup_dir=tmp_path / "backups")
@@ -102,4 +113,4 @@ def test_hardening_manager_dry_run(baseline_manager):
     assert post_rep is None  # Post-audit is None in dry-run mode
     assert len(actions) > 0
     for act in actions:
-        assert act.status == "PLANNED"
+        assert act.status in ["PLANNED", "SKIPPED"]

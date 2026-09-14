@@ -6,8 +6,9 @@ Generates a single-file, self-contained HTML dashboard with responsive CSS visua
 category progress bars, severity badges, and structured security findings.
 """
 
+import html
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from src.core.logger import AuditLogger
 from src.core.models import AuditReport, RiskLevel, Severity, Status
@@ -28,7 +29,7 @@ class HtmlReporter:
         meta = rep.system_meta
         s = rep.summary
         score = rep.overall_score
-        risk = rep.risk_level.value
+        risk = html.escape(str(rep.risk_level.value))
 
         # Score card color
         if score >= 85.0:
@@ -53,9 +54,10 @@ class HtmlReporter:
         for cat_id, cat_score in rep.category_scores.items():
             c_score = cat_score.score
             c_bar_color = "#10b981" if c_score >= 85 else ("#f59e0b" if c_score >= 70 else "#ef4444")
+            cat_name_safe = html.escape(str(cat_score.category_name))
             cat_rows_html += f"""
             <tr>
-                <td style="font-weight: 600;">{cat_score.category_name}</td>
+                <td style="font-weight: 600;">{cat_name_safe}</td>
                 <td><span class="pill">{cat_score.weight}%</span></td>
                 <td>{cat_score.passed_checks} / {cat_score.total_checks}</td>
                 <td><span style="color: #ef4444; font-weight: 600;">{cat_score.failed_checks}</span></td>
@@ -95,16 +97,21 @@ class HtmlReporter:
             else:
                 sev_bg, sev_fg = "#374151", "#ffffff"
 
-            fix_html = f"<div class='remediation-text'><strong>Fix:</strong> {f.recommendation}</div>" if f.status != Status.PASS else ""
+            rec_safe = html.escape(str(f.recommendation))
+            title_safe = html.escape(str(f.title))
+            evidence_safe = html.escape(str(f.evidence))
+            check_id_safe = html.escape(str(f.check_id))
+
+            fix_html = f"<div class='remediation-text'><strong>Fix:</strong> {rec_safe}</div>" if f.status != Status.PASS else ""
 
             findings_rows_html += f"""
             <tr>
-                <td><span class="badge" style="background-color: {st_bg}; color: {st_fg};">{f.status.value}</span></td>
-                <td><span class="badge" style="background-color: {sev_bg}; color: {sev_fg};">{f.severity.value}</span></td>
-                <td style="font-weight: 700; font-family: monospace;">{f.check_id}</td>
+                <td><span class="badge" style="background-color: {st_bg}; color: {st_fg};">{html.escape(f.status.value)}</span></td>
+                <td><span class="badge" style="background-color: {sev_bg}; color: {sev_fg};">{html.escape(f.severity.value)}</span></td>
+                <td style="font-weight: 700; font-family: monospace;">{check_id_safe}</td>
                 <td>
-                    <div style="font-weight: 600; margin-bottom: 4px;">{f.title}</div>
-                    <div class="evidence-text"><strong>Evidence:</strong> {f.evidence}</div>
+                    <div style="font-weight: 600; margin-bottom: 4px;">{title_safe}</div>
+                    <div class="evidence-text"><strong>Evidence:</strong> {evidence_safe}</div>
                     {fix_html}
                 </td>
             </tr>
@@ -281,9 +288,9 @@ class HtmlReporter:
             <div class="card">
                 <h3 style="margin-top: 0;">Target System Information</h3>
                 <table style="margin-top: 0;">
-                    <tr><td><strong>Hostname:</strong></td><td>{meta.hostname}</td><td><strong>OS Release:</strong></td><td>{meta.os_name} {meta.os_version}</td></tr>
-                    <tr><td><strong>Kernel:</strong></td><td>{meta.kernel_version}</td><td><strong>Architecture:</strong></td><td>{meta.architecture}</td></tr>
-                    <tr><td><strong>CPU:</strong></td><td>{meta.cpu_info}</td><td><strong>Memory (RAM):</strong></td><td>{meta.memory_total_mb} MB ({meta.memory_free_mb} MB free)</td></tr>
+                    <tr><td><strong>Hostname:</strong></td><td>{html.escape(str(meta.hostname))}</td><td><strong>OS Release:</strong></td><td>{html.escape(str(meta.os_name))} {html.escape(str(meta.os_version))}</td></tr>
+                    <tr><td><strong>Kernel:</strong></td><td>{html.escape(str(meta.kernel_version))}</td><td><strong>Architecture:</strong></td><td>{html.escape(str(meta.architecture))}</td></tr>
+                    <tr><td><strong>CPU:</strong></td><td>{html.escape(str(meta.cpu_info))}</td><td><strong>Memory (RAM):</strong></td><td>{meta.memory_total_mb} MB ({meta.memory_free_mb} MB free)</td></tr>
                 </table>
             </div>
         </div>

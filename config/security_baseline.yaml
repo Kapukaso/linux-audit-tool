@@ -159,6 +159,7 @@ checks:
     path: "/etc/shadow"
     allowed_perms: ["0640", "0600", "0000"]
     expected_owner: "root"
+    expected_group: "shadow"
     remediable: true
 
   - id: "FS-003"

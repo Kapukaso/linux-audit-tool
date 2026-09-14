@@ -6,8 +6,9 @@ Safely updates SSH directives with syntax verification (sshd -t) and transaction
 """
 
 import re
+import shutil
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from src.core.logger import AuditLogger
 from src.core.utils import command_exists, run_command, safe_read_file, safe_write_file
@@ -94,7 +95,6 @@ class SshFixer:
             if code != 0:
                 logger.error(f"SSH syntax validation (sshd -t) failed: {stderr}. Rolling back sshd_config...")
                 if backup_path and backup_path.exists():
-                    import shutil
                     shutil.copy2(backup_path, target_file)
                 return {"status": "FAILED", "details": f"Syntax error during sshd -t check: {stderr}"}
 

@@ -71,7 +71,7 @@ class ScoringEngine:
                     cat_penalty += (f.severity.penalty_points * 0.5)
 
             total_penalty += cat_penalty
-            cat_score_val = max(0.0, 100.0 - (cat_penalty * 2.5 if total_cat_checks > 0 else 0.0))
+            cat_score_val = max(0.0, 100.0 - cat_penalty) if total_cat_checks > 0 else 100.0
 
             category_scores[cat_id] = CategoryScore(
                 category_id=cat_id,

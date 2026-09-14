@@ -91,6 +91,13 @@ def test_sensitive_data_redaction():
     assert "MIIEowIBAAKCAQEA0" not in sanitized3
     assert "[REDACTED PRIVATE KEY]" in sanitized3
 
+    # SHA-512 crypt hash redaction
+    sha_hash = "$6$abc12345$0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    msg4 = f"User root hash is {sha_hash} in shadow file"
+    sanitized4 = SensitiveDataFilter.sanitize(msg4)
+    assert sha_hash not in sanitized4
+    assert "[REDACTED HASH]" in sanitized4
+
 
 def test_safe_subprocess_execution():
     """Tests run_command using python executable as a safe test command."""

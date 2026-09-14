@@ -5,7 +5,7 @@ Author: Kartik Soni
 Stops and masks obsolete daemons (telnet, rsh, xinetd) and activates security services (rsyslog, auditd).
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from src.core.logger import AuditLogger
 from src.core.utils import is_service_active, run_command

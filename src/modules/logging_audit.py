@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 
 from src.core.logger import AuditLogger
 from src.core.models import AuditFinding, Severity, Status
-from src.core.utils import command_exists, is_service_active, run_command, safe_read_file
+from src.core.utils import is_service_active, run_command, safe_read_file
 
 logger = AuditLogger.get_logger()
 

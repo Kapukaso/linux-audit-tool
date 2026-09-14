@@ -136,21 +136,25 @@ class BackupManager:
         """
         logger.info(f"Initiating system rollback from backup identifier: '{backup_identifier}'...")
 
-        # Resolve manifest file
+        # Resolve manifest file safely to prevent path traversal
         manifest_path = None
         target_path = Path(backup_identifier)
         if target_path.is_file() and target_path.name == "manifest.json":
-            manifest_path = target_path
+            candidate = target_path.resolve()
         elif target_path.is_dir():
-            manifest_path = target_path / "manifest.json"
+            candidate = (target_path / "manifest.json").resolve()
         else:
-            # Search base_dir
-            candidate = self.base_dir / backup_identifier / "manifest.json"
-            if candidate.exists():
-                manifest_path = candidate
+            candidate = (self.base_dir / backup_identifier / "manifest.json").resolve()
 
-        if not manifest_path or not manifest_path.exists():
-            logger.error(f"Cannot find manifest.json for rollback identifier '{backup_identifier}'")
+        base_resolved = self.base_dir.resolve()
+        try:
+            if candidate.exists() and candidate.is_relative_to(base_resolved):
+                manifest_path = candidate
+            else:
+                logger.error(f"Manifest path '{candidate}' is outside allowed backup directory '{base_resolved}'")
+                return False
+        except ValueError:
+            logger.error(f"Path traversal detected in backup identifier '{backup_identifier}'")
             return False
 
         try:

@@ -49,4 +49,3 @@ reports/*.html
 reports/*.txt
 !reports/.gitkeep
 backups/
-/var/backups/secureaudit/

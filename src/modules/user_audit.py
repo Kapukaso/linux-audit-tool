@@ -10,7 +10,6 @@ Checks:
 - USR-005: Password expiration maximum days policy in /etc/login.defs
 """
 
-import re
 from typing import Any, Dict, List, Optional
 
 from src.core.logger import AuditLogger

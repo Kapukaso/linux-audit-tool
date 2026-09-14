@@ -7,7 +7,7 @@ Exports audit findings, system metadata, category scores, and overall metrics to
 
 import json
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from src.core.logger import AuditLogger
 from src.core.models import AuditReport

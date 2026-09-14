@@ -9,8 +9,7 @@ sensitive environment credentials.
 import os
 import platform
 import re
-import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from src.core.logger import AuditLogger
 from src.core.models import SystemMeta
@@ -66,7 +65,7 @@ class SystemInfoCollector:
         processor = platform.processor()
         return processor if processor else f"{os.cpu_count() or 1} vCPUs"
 
-    def _get_memory_info(self) -> tuple[float, float]:
+    def _get_memory_info(self) -> Tuple[float, float]:
         """Parses /proc/meminfo to extract total and available RAM in MB."""
         meminfo = safe_read_file("/proc/meminfo")
         total_mb, free_mb = 0.0, 0.0
@@ -138,6 +137,7 @@ class SystemInfoCollector:
                 return interfaces
             except Exception as e:
                 logger.debug(f"JSON parsing for 'ip addr' failed: {e}")
+                interfaces = []
 
         # Plaintext fallback for 'ip addr'
         code, stdout, _ = run_command(["ip", "addr"])

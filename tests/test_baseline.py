@@ -33,7 +33,7 @@ def test_baseline_query_by_id(baseline_manager):
 def test_baseline_query_by_category(baseline_manager):
     """Verifies checks can be filtered by category."""
     ssh_checks = baseline_manager.get_checks_by_category("ssh_security")
-    assert len(ssh_checks) >= 5
+    assert len(ssh_checks) == 6
     for c in ssh_checks:
         assert c["category"] == "ssh_security"
 

@@ -17,13 +17,13 @@ from typing import Optional
 
 # Sensitive patterns that should never be written to logs
 SENSITIVE_PATTERNS = [
-    re.compile(r'(password\s*[:=]\s*)([^\s,]+)', re.IGNORECASE),
-    re.compile(r'(secret\s*[:=]\s*)([^\s,]+)', re.IGNORECASE),
-    re.compile(r'(api[_-]?key\s*[:=]\s*)([^\s,]+)', re.IGNORECASE),
-    re.compile(r'(token\s*[:=]\s*)([^\s,]+)', re.IGNORECASE),
-    re.compile(r'-----BEGIN [A-Z ]+ PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+ PRIVATE KEY-----'),
-    re.compile(r'(\$6\$[a-zA-Z0-9./]{8,16}\$[a-zA-Z0-9./]{86})'),  # SHA-512 crypt hash
-    re.compile(r'(\$y\$[a-zA-Z0-9./]{8,}\$[a-zA-Z0-9./]{40,})'),   # yescrypt hash
+    (re.compile(r'(password\s*[:=]\s*)([^\s,]+)', re.IGNORECASE), r'\1[REDACTED]'),
+    (re.compile(r'(secret\s*[:=]\s*)([^\s,]+)', re.IGNORECASE), r'\1[REDACTED]'),
+    (re.compile(r'(api[_-]?key\s*[:=]\s*)([^\s,]+)', re.IGNORECASE), r'\1[REDACTED]'),
+    (re.compile(r'(token\s*[:=]\s*)([^\s,]+)', re.IGNORECASE), r'\1[REDACTED]'),
+    (re.compile(r'-----BEGIN [A-Z ]+ PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+ PRIVATE KEY-----'), '[REDACTED PRIVATE KEY]'),
+    (re.compile(r'\$6\$[a-zA-Z0-9./]{8,16}\$[a-zA-Z0-9./]{86}'), '[REDACTED HASH]'),  # SHA-512 crypt hash
+    (re.compile(r'\$y\$[a-zA-Z0-9./]{8,}\$[a-zA-Z0-9./]{40,}'), '[REDACTED HASH]'),   # yescrypt hash
 ]
 
 
@@ -42,8 +42,8 @@ class SensitiveDataFilter(logging.Filter):
 
     @staticmethod
     def sanitize(text: str) -> str:
-        for pattern in SENSITIVE_PATTERNS:
-            text = pattern.sub(r'\1[REDACTED]', text) if 'PRIVATE KEY' not in pattern.pattern else pattern.sub('[REDACTED PRIVATE KEY]', text)
+        for pattern, replacement in SENSITIVE_PATTERNS:
+            text = pattern.sub(replacement, text)
         return text
 
 

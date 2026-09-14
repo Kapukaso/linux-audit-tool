@@ -188,35 +188,46 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("=" * 70 + "\n")
             return 0
 
-        # Generate reports
+        # Generate reports based on --format
         out_dir = Path(args.output) if args.output else Path("reports")
         out_dir.mkdir(parents=True, exist_ok=True)
+        rpt_fmt = getattr(args, "format", "all")
 
-        json_rep = JsonReporter(report)
-        html_rep = HtmlReporter(report)
-        console_rep = ConsoleReporter(report)
+        generated_paths = []
+        if rpt_fmt in ["all", "html"]:
+            html_rep = HtmlReporter(report)
+            html_path = out_dir / "report.html"
+            if html_rep.export_to_file(html_path):
+                generated_paths.append(("HTML Report", html_path))
 
-        json_path = out_dir / "report.json"
-        html_path = out_dir / "report.html"
-        txt_path = out_dir / "report.txt"
+        if rpt_fmt in ["all", "json"]:
+            json_rep = JsonReporter(report)
+            json_path = out_dir / "report.json"
+            if json_rep.export_to_file(json_path):
+                generated_paths.append(("JSON Report", json_path))
 
-        json_rep.export_to_file(json_path)
-        html_rep.export_to_file(html_path)
-        console_rep.export_to_file(txt_path)
+        if rpt_fmt in ["all", "txt"]:
+            console_rep = ConsoleReporter(report)
+            txt_path = out_dir / "report.txt"
+            if console_rep.export_to_file(txt_path):
+                generated_paths.append(("TXT Report", txt_path))
 
-        if args.command == "report":
-            rpt_fmt = getattr(args, "format", "html")
-            print(f"\n[*] Reports successfully generated in '{out_dir.resolve()}':")
-            print(f"    - HTML Report: {html_path.resolve()}")
-            print(f"    - JSON Report: {json_path.resolve()}")
-            print(f"    - TXT Report:  {txt_path.resolve()}\n")
-            return 0
+        print(f"\n[*] Reports successfully generated in '{out_dir.resolve()}':")
+        for label, path in generated_paths:
+            print(f"    - {label:<12}: {path.resolve()}")
+        print()
+        return 0
 
     elif args.command == "harden":
         from src.hardening.manager import HardeningManager
         is_dry = getattr(args, "dry_run", False)
         auto_confirm = getattr(args, "yes", False)
         rollback_id = getattr(args, "rollback", None)
+
+        if not is_dry and not rollback_id and not is_root():
+            logger.error("Active hardening requires root privileges. Please run with sudo.")
+            print("\n[-] Error: Active hardening requires root privileges. Please run with sudo.")
+            return 1
 
         hardener = HardeningManager(baseline_mgr)
 

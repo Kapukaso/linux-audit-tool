@@ -11,7 +11,6 @@ Checks:
 - SSH-006: Protocol version set to 2
 """
 
-import glob
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -26,7 +25,8 @@ logger = AuditLogger.get_logger()
 class SshAuditModule:
     """Audits SSH server configuration (sshd_config and drop-in include files)."""
 
-    def __init__(self, config_path: str = "/etc/ssh/sshd_config"):
+    def __init__(self, checks: Optional[List[Dict[str, Any]]] = None, config_path: str = "/etc/ssh/sshd_config"):
+        self.checks = checks or []
         self.config_path = config_path
         self.settings: Dict[str, str] = {}
         self._parse_config()
@@ -58,8 +58,9 @@ class SshAuditModule:
             if len(parts) == 2:
                 key = parts[0].strip()
                 val = parts[1].strip()
-                # Store case-insensitive key, latest directive takes effect in sshd (or first match)
-                self.settings[key.lower()] = val
+                # Store case-insensitive key (first match wins in OpenSSH sshd_config)
+                if key.lower() not in self.settings:
+                    self.settings[key.lower()] = val
 
     def get_directive(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """Retrieves a parsed sshd setting by name (case-insensitive)."""

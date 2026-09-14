@@ -15,7 +15,7 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from src.core.logger import AuditLogger
 
@@ -73,6 +73,8 @@ def run_command(
         logger.warning(f"Command '{' '.join(cmd)}' timed out after {timeout}s.")
         return 124, "", f"Command execution timed out after {timeout} seconds."
     except subprocess.CalledProcessError as cpe:
+        if check:
+            raise
         return cpe.returncode, cpe.stdout.strip() if cpe.stdout else "", cpe.stderr.strip() if cpe.stderr else ""
     except Exception as exc:
         logger.error(f"Unexpected error executing '{' '.join(cmd)}': {exc}")

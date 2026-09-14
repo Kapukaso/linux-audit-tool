@@ -117,4 +117,3 @@ Run the automated test suite with:
 pytest tests/ -v
 ```
 All 34 unit tests pass with 100% compliance.
-"# linux-audit-tool" 
