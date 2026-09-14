@@ -88,10 +88,21 @@ python secureaudit.py --verbose audit
 
 ---
 
-## 6. Testing
+## 6. Scoring & Reporting (Phase 4)
+
+`secureaudit` features a deterministic scoring engine and multi-format report generators:
+
+* **Scoring Engine (`src/core/scoring.py`):** Calculates an overall score out of 100 based on severity penalties (`CRITICAL` -15, `HIGH` -10, `MEDIUM` -5, `LOW` -2) and computes category compliance scores.
+* **HTML Dashboard (`src/reporters/html_reporter.py`):** Generates a self-contained executive HTML report (`reports/report.html`) with a visual scorecard badge, risk pills, category progress bars, and structured findings.
+* **Technical JSON (`src/reporters/json_reporter.py`):** Exports machine-readable audit metadata to `reports/report.json`.
+* **Console Text (`src/reporters/console_reporter.py`):** Formats high-contrast terminal summaries and `reports/report.txt`.
+
+---
+
+## 7. Testing
 Run the automated test suite with:
 ```bash
 pytest tests/ -v
 ```
-All 22 unit tests pass with 100% compliance.
+All 27 unit tests pass with 100% compliance.
 "# linux-audit-tool" 

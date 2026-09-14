@@ -160,53 +160,63 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("=" * 60 + "\n")
         return 0
 
-    elif args.command == "audit":
+    elif args.command in ["audit", "score", "report"]:
         from src.core.engine import AuditEngine
+        from src.core.scoring import ScoringEngine
+        from src.reporters.html_reporter import HtmlReporter
+        from src.reporters.json_reporter import JsonReporter
+        from src.reporters.console_reporter import ConsoleReporter
+
         target_cat = getattr(args, "category", "all")
-        print(f"\n[*] Executing Security Audit (Category: {target_cat})...")
+        print(f"\n[*] Running Audit & Scoring Engine (Category: {target_cat})...")
+
         engine = AuditEngine(baseline_mgr)
-        report = engine.run_audit(target_cat)
+        raw_report = engine.run_audit(target_cat)
+        scoring = ScoringEngine(baseline_mgr)
+        report = scoring.evaluate_report(raw_report)
 
-        print("\n" + "=" * 75)
-        print(f"SECURITY AUDIT FINDINGS ({len(report.findings)} CHECKS EVALUATED)")
-        print("=" * 75)
-        for f in report.findings:
-            status_tag = f"[{f.status.value}]"
-            print(f"{status_tag:<8} ({f.severity.value:<8}) {f.check_id}: {f.title}")
-            print(f"         Evidence: {f.evidence}")
-            if f.status != "PASS":
-                print(f"         Fix:      {f.recommendation}")
-            print("-" * 75)
-
-        s = report.summary
-        print(f"\nAUDIT SUMMARY: {s['total']} Total | {s['passed']} Passed | {s['failed']} Failed | {s['warnings']} Warnings")
-        print(f"SEVERITY BREAKDOWN: {s['critical']} Critical | {s['high']} High | {s['medium']} Medium | {s['low']} Low\n")
-        return 0
-
-    elif args.command == "harden":
-        is_dry = getattr(args, "dry_run", False)
-        rollback_id = getattr(args, "rollback", None)
-
-        if rollback_id:
-            print(f"\n[*] Initializing Rollback Pipeline for snapshot: {rollback_id}...")
+        if args.command == "score":
+            print("\n" + "=" * 70)
+            print("SECURITY POSTURE SCORECARD")
+            print("=" * 70)
+            print(f"  OVERALL SECURITY SCORE:  {report.overall_score} / 100")
+            print(f"  OVERALL RISK LEVEL:      {report.risk_level.value}")
+            print(f"  EVALUATED CHECKS:        {report.summary['total']} Total ({report.summary['passed']} passed, {report.summary['failed']} failed, {report.summary['warnings']} warnings)")
+            print("\n[CATEGORY BREAKDOWN]")
+            for cat_id, cs in report.category_scores.items():
+                print(f"  - {cs.category_name:<36} Score: {cs.score:>5.1f}% ({cs.passed_checks}/{cs.total_checks} passed)")
+            print("=" * 70 + "\n")
             return 0
 
-        print(f"\n[*] Initializing Hardening Engine (Dry-Run: {is_dry})...")
-        if not is_root() and not is_dry:
-            logger.error("Hardening requires root privileges. Please run with 'sudo secureaudit harden'.")
-            return 1
-        print("    [Hardening Engine Orchestration will execute here]\n")
-        return 0
+        # Generate reports
+        out_dir = Path(args.output) if args.output else Path("reports")
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    elif args.command == "score":
-        print("\n[*] Calculating Security Posture Score...")
-        print("    [Deterministic Scoring Engine will execute here]\n")
-        return 0
+        json_rep = JsonReporter(report)
+        html_rep = HtmlReporter(report)
+        console_rep = ConsoleReporter(report)
 
-    elif args.command == "report":
-        rpt_fmt = getattr(args, "format", "html")
-        print(f"\n[*] Exporting Security Report (Format: {rpt_fmt})...")
-        print("    [Report Generation Subsystem will execute here]\n")
+        json_path = out_dir / "report.json"
+        html_path = out_dir / "report.html"
+        txt_path = out_dir / "report.txt"
+
+        json_rep.export_to_file(json_path)
+        html_rep.export_to_file(html_path)
+        console_rep.export_to_file(txt_path)
+
+        if args.command == "report":
+            rpt_fmt = getattr(args, "format", "html")
+            print(f"\n[*] Reports successfully generated in '{out_dir.resolve()}':")
+            print(f"    - HTML Report: {html_path.resolve()}")
+            print(f"    - JSON Report: {json_path.resolve()}")
+            print(f"    - TXT Report:  {txt_path.resolve()}\n")
+            return 0
+
+        # Detailed Audit Console Display
+        console_rep.print_to_console()
+        print(f"\n[*] Multi-format reports saved to '{out_dir.resolve()}':")
+        print(f"    - HTML Dashboard: file:///{html_path.resolve().as_posix()}")
+        print(f"    - Technical JSON: file:///{json_path.resolve().as_posix()}\n")
         return 0
 
     return 0
