@@ -140,17 +140,47 @@ def main(argv: Optional[List[str]] = None) -> int:
         handle_baseline_summary(baseline_mgr)
 
     if args.command == "system-info":
-        # Placeholder call to system info module (implemented in Phase 3)
-        print("\n[*] Initializing System Information Collector...")
-        print(f"    Effective Root Privilege: {'Yes' if is_root() else 'No'}")
-        print("    [System Information Collector will execute here]\n")
+        from src.modules.system_info import SystemInfoCollector
+        collector = SystemInfoCollector()
+        meta = collector.collect()
+        print("\n" + "=" * 60)
+        print("SYSTEM INFORMATION SUMMARY")
+        print("=" * 60)
+        print(f"  Hostname:       {meta.hostname}")
+        print(f"  OS Name:        {meta.os_name}")
+        print(f"  OS Version:     {meta.os_version}")
+        print(f"  Kernel:         {meta.kernel_version}")
+        print(f"  Architecture:   {meta.architecture}")
+        print(f"  CPU Info:       {meta.cpu_info}")
+        print(f"  Total Memory:   {meta.memory_total_mb} MB")
+        print(f"  Free Memory:    {meta.memory_free_mb} MB")
+        if meta.disk_usage:
+            print(f"  Root Disk:      {meta.disk_usage.get('used', 'N/A')} / {meta.disk_usage.get('size', 'N/A')} ({meta.disk_usage.get('use_percent', 'N/A')} used)")
+        print(f"  Interfaces:     {len(meta.network_interfaces)} detected")
+        print("=" * 60 + "\n")
         return 0
 
     elif args.command == "audit":
+        from src.core.engine import AuditEngine
         target_cat = getattr(args, "category", "all")
-        print(f"\n[*] Starting Security Audit (Category: {target_cat})...")
-        print(f"    Using baseline: {baseline_mgr.config_path}")
-        print("    [Audit Engine Orchestration will execute here]\n")
+        print(f"\n[*] Executing Security Audit (Category: {target_cat})...")
+        engine = AuditEngine(baseline_mgr)
+        report = engine.run_audit(target_cat)
+
+        print("\n" + "=" * 75)
+        print(f"SECURITY AUDIT FINDINGS ({len(report.findings)} CHECKS EVALUATED)")
+        print("=" * 75)
+        for f in report.findings:
+            status_tag = f"[{f.status.value}]"
+            print(f"{status_tag:<8} ({f.severity.value:<8}) {f.check_id}: {f.title}")
+            print(f"         Evidence: {f.evidence}")
+            if f.status != "PASS":
+                print(f"         Fix:      {f.recommendation}")
+            print("-" * 75)
+
+        s = report.summary
+        print(f"\nAUDIT SUMMARY: {s['total']} Total | {s['passed']} Passed | {s['failed']} Failed | {s['warnings']} Warnings")
+        print(f"SEVERITY BREAKDOWN: {s['critical']} Critical | {s['high']} High | {s['medium']} Medium | {s['low']} Low\n")
         return 0
 
     elif args.command == "harden":

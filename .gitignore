@@ -50,3 +50,5 @@ reports/*.txt
 !reports/.gitkeep
 backups/
 /var/backups/secureaudit/
+
+Master prompt.md
