@@ -99,10 +99,22 @@ python secureaudit.py --verbose audit
 
 ---
 
-## 7. Testing
+## 7. Hardening Subsystem (Phase 5)
+
+`secureaudit` provides a non-destructive audit mode and a safe, interactive hardening subsystem:
+
+* **Dry-Run Simulation (`--dry-run`):** Previews all proposed remediations with exact command details without modifying system files.
+* **Transactional Backups:** Preserves original files into timestamped snapshot directories (`/var/backups/secureaudit/backup_<timestamp>/`) with metadata manifests (`manifest.json`).
+* **SSH Syntax Verification:** Validates configuration syntax via `sshd -t` before reloading SSH services. Automatically rolls back on syntax failure.
+* **Anti-Lockout Protection:** Explicitly adds SSH allow rules (`ufw allow 22/tcp`) prior to activating firewall policies.
+* **Automated Rollback Engine (`--rollback <ID>`):** Restores original file content, permissions, and ownership from snapshot manifests.
+
+---
+
+## 8. Testing
 Run the automated test suite with:
 ```bash
 pytest tests/ -v
 ```
-All 27 unit tests pass with 100% compliance.
+All 34 unit tests pass with 100% compliance.
 "# linux-audit-tool" 

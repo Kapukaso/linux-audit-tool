@@ -212,12 +212,38 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"    - TXT Report:  {txt_path.resolve()}\n")
             return 0
 
-        # Detailed Audit Console Display
-        console_rep.print_to_console()
-        print(f"\n[*] Multi-format reports saved to '{out_dir.resolve()}':")
-        print(f"    - HTML Dashboard: file:///{html_path.resolve().as_posix()}")
-        print(f"    - Technical JSON: file:///{json_path.resolve().as_posix()}\n")
-        return 0
+    elif args.command == "harden":
+        from src.hardening.manager import HardeningManager
+        is_dry = getattr(args, "dry_run", False)
+        auto_confirm = getattr(args, "yes", False)
+        rollback_id = getattr(args, "rollback", None)
+
+        hardener = HardeningManager(baseline_mgr)
+
+        if rollback_id:
+            print(f"\n[*] Executing System Rollback for snapshot: '{rollback_id}'...")
+            success = hardener.execute_rollback(rollback_id)
+            if success:
+                print("[+] System rollback completed successfully!")
+                return 0
+            else:
+                print("[-] System rollback failed. Inspect log file logs/secureaudit.log.")
+                return 1
+
+        print(f"\n[*] Executing Hardening Pipeline (Dry-Run: {is_dry})...")
+        try:
+            actions, pre_rep, post_rep = hardener.execute_hardening(dry_run=is_dry, auto_confirm=auto_confirm)
+            if is_dry:
+                print(f"\n[+] Dry-run simulation completed. {len(actions)} actions planned.")
+            elif post_rep:
+                print(f"\n[+] Security Hardening Complete! Security Score improved from {pre_rep.overall_score} to {post_rep.overall_score}.")
+            return 0
+        except PermissionError as pe:
+            logger.error(str(pe))
+            return 1
+        except Exception as exc:
+            logger.error(f"Hardening execution failed: {exc}")
+            return 1
 
     return 0
 
