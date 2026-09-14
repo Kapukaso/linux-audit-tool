@@ -111,9 +111,19 @@ python secureaudit.py --verbose audit
 
 ---
 
-## 8. Testing
+## 8. Lab Test Scripts & Benchmark Harness (Phase 6)
+
+`secureaudit` includes automated lab scripts and a comparative benchmark harness:
+
+* **Vulnerable Lab Setup (`scripts/setup_vulnerable_lab.sh`):** Intentionally injects misconfigurations across all 7 categories into a target Linux VM for testing.
+* **Lab Cleanup (`scripts/cleanup_lab.sh`):** Removes test drop-ins and restores standard POSIX permissions and system configurations.
+* **Automated Benchmark Harness (`scripts/run_benchmarks.py`):** Runs pre-hardening audit, executes dry-run hardening, runs post-hardening audit, and displays a side-by-side comparative metrics table.
+
+---
+
+## 9. Testing
 Run the automated test suite with:
 ```bash
 pytest tests/ -v
 ```
-All 34 unit tests pass with 100% compliance.
+All 36 unit tests pass with 100% compliance.
