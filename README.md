@@ -127,3 +127,19 @@ Run the automated test suite with:
 pytest tests/ -v
 ```
 All 49 unit and integration tests pass with 100% compliance.
+
+---
+
+## 10. Documentation Roadmap
+
+Comprehensive documentation for all 8 project phases is available in the `docs/` folder:
+
+1. [`phase1_architecture_and_specifications.md`](docs/phase1_architecture_and_specifications.md): Project Blueprint, STRIDE Threat Model, 29 Checks Specification.
+2. [`phase2_core_framework_implementation.md`](docs/phase2_core_framework_implementation.md): Core Framework Foundation (Models, Logger, Utils, Baseline Manager).
+3. [`phase3_audit_engine_and_inspection_modules.md`](docs/phase3_audit_engine_and_inspection_modules.md): Audit Engine Orchestration & 8 Inspection Modules.
+4. [`phase4_scoring_engine_and_reporters.md`](docs/phase4_scoring_engine_and_reporters.md): Deterministic Scoring Engine & HTML/JSON/Console Reporters.
+5. [`phase5_hardening_subsystem_and_rollback.md`](docs/phase5_hardening_subsystem_and_rollback.md): Hardening Manager, Remediation Fixers & Rollback Engine.
+6. [`phase6_lab_test_scripts_and_metrics.md`](docs/phase6_lab_test_scripts_and_metrics.md): Lab Setup/Cleanup Scripts & Before/After Metrics Analysis.
+7. [`phase7_comprehensive_pytest_suite_expansion.md`](docs/phase7_comprehensive_pytest_suite_expansion.md): 49 Automated Pytest Suite & Edge Case Verification.
+8. [`phase8_internship_report_and_presentation.md`](docs/phase8_internship_report_and_presentation.md): Internship Academic Report, Screenshot Execution Plan & Slide Deck Blueprint.
+9. [`project_issues_and_findings.md`](docs/project_issues_and_findings.md): Comprehensive 28-Issue Code Audit & Remediation Findings Report.
