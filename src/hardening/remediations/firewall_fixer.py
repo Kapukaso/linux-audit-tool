@@ -37,13 +37,26 @@ class FirewallFixer:
             logger.info("  [DRY-RUN] Step 3: ufw --force enable")
             return {"status": "PLANNED", "details": "Dry-run simulation completed for UFW firewall activation."}
 
+        ssh_port = "22"
+        try:
+            with open("/etc/ssh/sshd_config", "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.lower().startswith("port") and not line.startswith("#"):
+                        parts = line.split()
+                        if len(parts) == 2:
+                            ssh_port = parts[1]
+                            break
+        except Exception:
+            pass
+
         # 1. ANTI-LOCKOUT RULE FIRST
-        code1, _, err1 = run_command(["ufw", "allow", "22/tcp"])
+        code1, _, err1 = run_command(["ufw", "allow", f"{ssh_port}/tcp"])
         if code1 != 0:
-            logger.error(f"Failed to add SSH anti-lockout rule: {err1}. Aborting firewall activation!")
+            logger.error(f"Failed to add SSH anti-lockout rule for port {ssh_port}: {err1}. Aborting firewall activation!")
             return {"status": "FAILED", "details": f"Anti-lockout SSH rule failed: {err1}"}
 
-        logger.info("Added explicit SSH port 22/tcp allow rule in UFW.")
+        logger.info(f"Added explicit SSH port {ssh_port}/tcp allow rule in UFW.")
 
         # 2. Set default deny incoming
         run_command(["ufw", "default", "deny", "incoming"])

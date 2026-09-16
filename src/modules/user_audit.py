@@ -25,6 +25,21 @@ class UserAuditModule:
     def __init__(self, baseline_checks: Optional[List[Dict[str, Any]]] = None):
         self.checks = baseline_checks or []
 
+    def _get_check_config(self, check_id: str) -> Dict[str, Any]:
+        for check in self.checks:
+            if check.get("id") == check_id:
+                return check
+        return {}
+
+    def _get_severity(self, config: Dict[str, Any], default: Severity) -> Severity:
+        sev_str = config.get("severity")
+        if sev_str:
+            try:
+                return Severity(sev_str.upper())
+            except ValueError:
+                pass
+        return default
+
     def audit_all(self) -> List[AuditFinding]:
         """Executes all user and privilege security checks."""
         findings: List[AuditFinding] = []
@@ -38,14 +53,19 @@ class UserAuditModule:
     def audit_uid_zero(self) -> AuditFinding:
         """USR-001: Verifies UID 0 is assigned exclusively to root."""
         check_id = "USR-001"
+        config = self._get_check_config(check_id)
+        title = config.get("title", "Verify UID 0 is assigned exclusively to the root account")
+        severity = self._get_severity(config, Severity.CRITICAL)
+        expected = config.get("expected", ["root"])
+        
         passwd_content = safe_read_file("/etc/passwd")
 
         if not passwd_content:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify UID 0 is assigned exclusively to the root account",
-                severity=Severity.CRITICAL,
+                title=title,
+                severity=severity,
                 status=Status.SKIP,
                 description="Unable to read /etc/passwd",
                 evidence="File /etc/passwd was unreadable or missing.",
@@ -62,25 +82,25 @@ class UserAuditModule:
             if len(parts) >= 3 and parts[2] == "0":
                 uid_zero_users.append(parts[0])
 
-        if uid_zero_users == ["root"]:
+        if set(uid_zero_users) == set(expected):
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify UID 0 is assigned exclusively to the root account",
-                severity=Severity.CRITICAL,
+                title=title,
+                severity=severity,
                 status=Status.PASS,
-                description="UID 0 is assigned exclusively to root.",
+                description="UID 0 is assigned exclusively to expected accounts.",
                 evidence=f"UID 0 accounts: {', '.join(uid_zero_users)}",
                 recommendation="None. Current configuration is secure.",
                 remediable=False
             )
         else:
-            unauthorized = [u for u in uid_zero_users if u != "root"]
+            unauthorized = [u for u in uid_zero_users if u not in expected]
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify UID 0 is assigned exclusively to the root account",
-                severity=Severity.CRITICAL,
+                title=title,
+                severity=severity,
                 status=Status.FAIL,
                 description="Unauthorized non-root accounts have UID 0 superuser privileges!",
                 evidence=f"Non-root UID 0 accounts found: {', '.join(unauthorized)}",
@@ -91,15 +111,18 @@ class UserAuditModule:
     def audit_empty_passwords(self) -> AuditFinding:
         """USR-002: Verifies no user accounts have empty password fields in /etc/shadow."""
         check_id = "USR-002"
+        config = self._get_check_config(check_id)
+        title = config.get("title", "Verify no accounts have empty password fields")
+        severity = self._get_severity(config, Severity.CRITICAL)
+        
         shadow_content = safe_read_file("/etc/shadow")
 
         if not shadow_content:
-            # Unprivileged user running audit cannot read /etc/shadow
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify no accounts have empty password fields",
-                severity=Severity.CRITICAL,
+                title=title,
+                severity=severity,
                 status=Status.WARN,
                 description="Permission denied reading /etc/shadow. Run audit with root privileges to inspect password hashes.",
                 evidence="Permission denied accessing /etc/shadow.",
@@ -116,15 +139,15 @@ class UserAuditModule:
             if len(parts) >= 2:
                 username = parts[0]
                 password_field = parts[1]
-                if password_field == "" or password_field == "::":
+                if password_field == "":
                     empty_pass_accounts.append(username)
 
         if not empty_pass_accounts:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify no accounts have empty password fields",
-                severity=Severity.CRITICAL,
+                title=title,
+                severity=severity,
                 status=Status.PASS,
                 description="No local accounts have empty password hashes.",
                 evidence="0 accounts with empty passwords found in /etc/shadow.",
@@ -135,8 +158,8 @@ class UserAuditModule:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify no accounts have empty password fields",
-                severity=Severity.CRITICAL,
+                title=title,
+                severity=severity,
                 status=Status.FAIL,
                 description="Accounts with empty passwords allow unauthenticated login!",
                 evidence=f"Empty password accounts: {', '.join(empty_pass_accounts)}",
@@ -148,51 +171,74 @@ class UserAuditModule:
     def audit_root_status(self) -> AuditFinding:
         """USR-003: Verifies root account password status."""
         check_id = "USR-003"
+        config = self._get_check_config(check_id)
+        title = config.get("title", "Verify root account status and lock status")
+        severity = self._get_severity(config, Severity.MEDIUM)
+        
         shadow_content = safe_read_file("/etc/shadow")
 
-        if shadow_content:
-            for line in shadow_content.splitlines():
-                if line.startswith("root:"):
-                    parts = line.split(":")
-                    if len(parts) >= 2:
-                        hash_val = parts[1]
-                        is_locked = hash_val.startswith("!") or hash_val.startswith("*") or hash_val == "!"
-                        evidence = "Root password is locked (!/*)" if is_locked else "Root account has active password hash"
-                        return AuditFinding(
-                            check_id=check_id,
-                            category="user_security",
-                            title="Verify root account status and lock status",
-                            severity=Severity.MEDIUM,
-                            status=Status.PASS if is_locked else Status.WARN,
-                            description="Direct root login should use locked password with sudo elevation.",
-                            evidence=evidence,
-                            recommendation="Enforce sudo for administrative tasks and lock direct root password.",
-                            remediable=False
-                        )
+        if not shadow_content:
+            return AuditFinding(
+                check_id=check_id,
+                category="user_security",
+                title=title,
+                severity=severity,
+                status=Status.WARN,
+                description="Root status could not be verified directly from /etc/shadow.",
+                evidence="Read access to /etc/shadow unavailable.",
+                recommendation="Run secureaudit with sudo privileges.",
+                remediable=False
+            )
+        
+        root_found = False
+        for line in shadow_content.splitlines():
+            if line.startswith("root:"):
+                root_found = True
+                parts = line.split(":")
+                if len(parts) >= 2:
+                    hash_val = parts[1]
+                    is_locked = hash_val.startswith("!") or hash_val.startswith("*")
+                    evidence = "Root password is locked (!/*)" if is_locked else "Root account has active password hash"
+                    return AuditFinding(
+                        check_id=check_id,
+                        category="user_security",
+                        title=title,
+                        severity=severity,
+                        status=Status.PASS if is_locked else Status.WARN,
+                        description="Direct root login should use locked password with sudo elevation.",
+                        evidence=evidence,
+                        recommendation="Enforce sudo for administrative tasks and lock direct root password.",
+                        remediable=False
+                    )
 
-        return AuditFinding(
-            check_id=check_id,
-            category="user_security",
-            title="Verify root account status and lock status",
-            severity=Severity.MEDIUM,
-            status=Status.WARN,
-            description="Root status could not be verified directly from /etc/shadow.",
-            evidence="Read access to /etc/shadow unavailable.",
-            recommendation="Run secureaudit with sudo privileges.",
-            remediable=False
-        )
+        if not root_found:
+            return AuditFinding(
+                check_id=check_id,
+                category="user_security",
+                title=title,
+                severity=severity,
+                status=Status.WARN,
+                description="Root account missing from /etc/shadow.",
+                evidence="Root entry missing in /etc/shadow.",
+                recommendation="Verify integrity of /etc/shadow.",
+                remediable=False
+            )
 
     def audit_login_shells(self) -> AuditFinding:
         """USR-004: Inspects login shells for system accounts."""
         check_id = "USR-004"
+        config = self._get_check_config(check_id)
+        title = config.get("title", "Check for system accounts with interactive login shells")
+        severity = self._get_severity(config, Severity.MEDIUM)
+        
         passwd_content = safe_read_file("/etc/passwd")
 
         if not passwd_content:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Check for non-system accounts with interactive login shells",
-                severity=Severity.MEDIUM,
+                title=title,
+                severity=severity,
                 status=Status.SKIP,
                 description="Unable to read /etc/passwd",
                 evidence="File /etc/passwd unreadable.",
@@ -200,7 +246,7 @@ class UserAuditModule:
                 remediable=True
             )
 
-        interactive_shells = {"/bin/bash", "/bin/sh", "/bin/zsh", "/usr/bin/bash", "/usr/bin/zsh"}
+        interactive_shells = {"/bin/bash", "/bin/sh", "/bin/zsh", "/usr/bin/bash", "/usr/bin/zsh", "/bin/dash", "/bin/csh", "/bin/tcsh", "/bin/ksh", "/usr/bin/fish"}
         system_users_with_interactive_shell: List[str] = []
 
         for line in passwd_content.splitlines():
@@ -225,8 +271,8 @@ class UserAuditModule:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Check for non-system accounts with interactive login shells",
-                severity=Severity.MEDIUM,
+                title=title,
+                severity=severity,
                 status=Status.PASS,
                 description="System service accounts correctly use non-interactive shells.",
                 evidence="All system accounts (UID < 1000) have non-interactive shells.",
@@ -237,8 +283,8 @@ class UserAuditModule:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Check for non-system accounts with interactive login shells",
-                severity=Severity.MEDIUM,
+                title=title,
+                severity=severity,
                 status=Status.FAIL,
                 description="System service accounts have interactive login shells enabled!",
                 evidence=f"System accounts with interactive shells: {', '.join(system_users_with_interactive_shell)}",
@@ -250,14 +296,19 @@ class UserAuditModule:
     def audit_password_policy(self) -> AuditFinding:
         """USR-005: Verifies PASS_MAX_DAYS in /etc/login.defs."""
         check_id = "USR-005"
+        config = self._get_check_config(check_id)
+        title = config.get("title", "Verify password expiration policy in /etc/login.defs")
+        severity = self._get_severity(config, Severity.LOW)
+        expected_max_days = config.get("max_days", 90)
+        
         login_defs = safe_read_file("/etc/login.defs")
 
         if not login_defs:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify password expiration policy in /etc/login.defs",
-                severity=Severity.LOW,
+                title=title,
+                severity=severity,
                 status=Status.SKIP,
                 description="Unable to read /etc/login.defs",
                 evidence="/etc/login.defs missing or unreadable.",
@@ -278,14 +329,14 @@ class UserAuditModule:
                 except ValueError:
                     pass
 
-        if max_days is not None and max_days <= 90:
+        if max_days is not None and 0 < max_days <= expected_max_days:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify password expiration policy in /etc/login.defs",
-                severity=Severity.LOW,
+                title=title,
+                severity=severity,
                 status=Status.PASS,
-                description=f"PASS_MAX_DAYS is set to {max_days} days (<= 90 days).",
+                description=f"PASS_MAX_DAYS is set to {max_days} days (<= {expected_max_days} days).",
                 evidence=f"PASS_MAX_DAYS = {max_days}",
                 recommendation="None. Current configuration is secure.",
                 remediable=True
@@ -295,12 +346,12 @@ class UserAuditModule:
             return AuditFinding(
                 check_id=check_id,
                 category="user_security",
-                title="Verify password expiration policy in /etc/login.defs",
-                severity=Severity.LOW,
+                title=title,
+                severity=severity,
                 status=Status.FAIL,
-                description="Password maximum age exceeds recommended threshold (90 days).",
+                description=f"Password maximum age exceeds recommended threshold ({expected_max_days} days) or is disabled.",
                 evidence=evidence_str,
-                recommendation="Set PASS_MAX_DAYS 90 in /etc/login.defs.",
+                recommendation=f"Set PASS_MAX_DAYS {expected_max_days} in /etc/login.defs.",
                 remediable=True,
-                remediation_details="Update PASS_MAX_DAYS 90 in /etc/login.defs"
+                remediation_details=f"Update PASS_MAX_DAYS {expected_max_days} in /etc/login.defs"
             )

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Union
 
 from src.core.logger import AuditLogger
-from src.core.models import AuditReport, RiskLevel, Severity, Status
+from src.core.models import AuditReport, Severity, Status
 from src.core.utils import safe_write_file
 
 logger = AuditLogger.get_logger()

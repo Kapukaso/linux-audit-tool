@@ -69,15 +69,18 @@ class BaselineManager:
     """Loads, validates, and queries security baseline configurations."""
 
     def __init__(self, config_path: Optional[str] = None):
-        self.config_path = Path(config_path) if config_path else Path("config/security_baseline.yaml")
+        import copy
+        default_path = Path(__file__).resolve().parent.parent.parent / "config/security_baseline.yaml"
+        self.config_path = Path(config_path) if config_path else default_path
         self.baseline_data: Dict[str, Any] = {}
         self.load_baseline()
 
     def load_baseline(self) -> None:
         """Loads configuration from YAML or JSON file with validation."""
+        import copy
         if not self.config_path.exists():
             logger.warning(f"Baseline file '{self.config_path}' not found. Falling back to built-in baseline.")
-            self.baseline_data = FALLBACK_BASELINE
+            self.baseline_data = copy.deepcopy(FALLBACK_BASELINE)
             return
 
         try:
@@ -87,8 +90,12 @@ class BaselineManager:
                     import yaml
                     data = yaml.safe_load(content)
                 except ImportError:
-                    logger.warning("PyYAML not installed. Attempting JSON load or fallback.")
-                    data = json.loads(content)
+                    logger.warning("PyYAML not installed. Attempting JSON sibling fallback.")
+                    json_path = self.config_path.with_suffix(".json")
+                    if json_path.exists():
+                        data = json.loads(json_path.read_text(encoding="utf-8"))
+                    else:
+                        raise ValueError(f"No JSON fallback found at {json_path}")
             else:
                 data = json.loads(content)
 
@@ -97,10 +104,12 @@ class BaselineManager:
                 logger.debug(f"Successfully loaded security baseline from '{self.config_path}'.")
             else:
                 logger.error(f"Baseline '{self.config_path}' failed schema validation. Using fallback.")
-                self.baseline_data = FALLBACK_BASELINE
+                import copy
+                self.baseline_data = copy.deepcopy(FALLBACK_BASELINE)
         except Exception as exc:
             logger.error(f"Error reading baseline '{self.config_path}': {exc}. Using fallback.")
-            self.baseline_data = FALLBACK_BASELINE
+            import copy
+            self.baseline_data = copy.deepcopy(FALLBACK_BASELINE)
 
     @staticmethod
     def validate_schema(data: Any) -> bool:
@@ -123,7 +132,7 @@ class BaselineManager:
                 return False
             if not required_fields.issubset(check.keys()):
                 return False
-            if check["severity"].upper() not in valid_severities:
+            if not isinstance(check.get("severity"), str) or check["severity"].upper() not in valid_severities:
                 return False
 
         return True

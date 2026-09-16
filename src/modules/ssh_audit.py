@@ -12,6 +12,8 @@ Checks:
 """
 
 import re
+import glob
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -29,53 +31,121 @@ class SshAuditModule:
         self.checks = checks or []
         self.config_path = config_path
         self.settings: Dict[str, str] = {}
+        self.in_match_block = False
         self._parse_config()
 
     def _parse_config(self) -> None:
-        """Parses main sshd_config file and any Included drop-in files in sshd_config.d/."""
+        """Parses main sshd_config file and any Included drop-in files."""
         self.settings = {}
+        self.in_match_block = False
 
-        # 1. Parse main sshd_config
         main_content = safe_read_file(self.config_path)
         if main_content:
-            self._parse_content(main_content)
+            self._parse_content(main_content, Path(self.config_path).parent)
 
-        # 2. Check for Include directives (e.g. Include /etc/ssh/sshd_config.d/*.conf)
-        dropin_dir = Path("/etc/ssh/sshd_config.d")
-        if dropin_dir.exists() and dropin_dir.is_dir():
-            for conf_file in sorted(dropin_dir.glob("*.conf")):
-                content = safe_read_file(conf_file)
-                if content:
-                    self._parse_content(content)
-
-    def _parse_content(self, content: str) -> None:
+    def _parse_content(self, content: str, base_dir: Path) -> None:
         """Parses directive key-value pairs ignoring comments."""
         for line in content.splitlines():
             line = line.strip()
-            if not line or line.startswith("#"):
+            
+            # Strip inline comments
+            if "#" in line:
+                line = line.split("#", 1)[0].strip()
+                
+            if not line:
                 continue
-            parts = line.split(maxsplit=1)
-            if len(parts) == 2:
-                key = parts[0].strip()
-                val = parts[1].strip()
-                # Store case-insensitive key (first match wins in OpenSSH sshd_config)
-                if key.lower() not in self.settings:
-                    self.settings[key.lower()] = val
+                
+            # Split by whitespace or '='
+            parts = re.split(r'[\s=]+', line, maxsplit=1)
+            if not parts:
+                continue
+                
+            key = parts[0].strip()
+            val = parts[1].strip() if len(parts) > 1 else ""
+            
+            # Remove surrounding quotes
+            if len(val) >= 2 and val[0] in "\"'" and val[-1] == val[0]:
+                val = val[1:-1]
+                
+            if key.lower() == "match":
+                self.in_match_block = True
+                continue
+                
+            if key.lower() == "include":
+                include_path = val
+                if not include_path.startswith("/"):
+                    include_path = str(base_dir / include_path)
+                for conf_file in sorted(glob.glob(include_path)):
+                    c = safe_read_file(conf_file)
+                    if c:
+                        prev_match = self.in_match_block
+                        self.in_match_block = False
+                        self._parse_content(c, base_dir)
+                        self.in_match_block = prev_match
+                continue
+
+            if self.in_match_block:
+                continue
+
+            # Store case-insensitive key (first match wins in OpenSSH sshd_config)
+            if key.lower() not in self.settings:
+                self.settings[key.lower()] = val
 
     def get_directive(self, key: str, default: Optional[str] = None) -> Optional[str]:
         """Retrieves a parsed sshd setting by name (case-insensitive)."""
         return self.settings.get(key.lower(), default)
 
+    def _get_openssh_version(self) -> float:
+        try:
+            result = subprocess.run(["ssh", "-V"], stderr=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+            output = result.stderr if result.stderr else result.stdout
+            m = re.search(r"OpenSSH_([0-9]+\.[0-9]+)", output)
+            if m:
+                return float(m.group(1))
+        except Exception:
+            pass
+        return 0.0
+
     def audit_all(self) -> List[AuditFinding]:
         """Executes all SSH audit checks."""
-        return [
+        config_p = Path(self.config_path)
+        if not config_p.exists():
+            skip_msg = "SSH server configuration not found; assuming SSH is not installed."
+            return [
+                AuditFinding(check_id="SSH-001", category="ssh_security", title="Ensure SSH Root Login is disabled", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence=f"Missing {self.config_path}"),
+                AuditFinding(check_id="SSH-002", category="ssh_security", title="Ensure SSH Password Authentication is restricted", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence=""),
+                AuditFinding(check_id="SSH-003", category="ssh_security", title="Ensure SSH PermitEmptyPasswords is set to no", severity=Severity.CRITICAL, status=Status.SKIP, description=skip_msg, evidence=""),
+                AuditFinding(check_id="SSH-004", category="ssh_security", title="Ensure SSH MaxAuthTries is set to 4 or fewer", severity=Severity.MEDIUM, status=Status.SKIP, description=skip_msg, evidence=""),
+                AuditFinding(check_id="SSH-005", category="ssh_security", title="Ensure SSH X11Forwarding is disabled", severity=Severity.LOW, status=Status.SKIP, description=skip_msg, evidence=""),
+                AuditFinding(check_id="SSH-006", category="ssh_security", title="Ensure SSH Protocol version is strictly 2", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence="")
+            ]
+            
+        findings = [
             self.audit_permit_root_login(),
             self.audit_password_authentication(),
             self.audit_permit_empty_passwords(),
             self.audit_max_auth_tries(),
             self.audit_x11_forwarding(),
-            self.audit_protocol_version()
         ]
+        
+        # LOW-18: Obsolete Protocol 2 Recommendation in SSH Audit
+        # Check OpenSSH version. If >= 7.4, Protocol 2 is implicitly enforced and recommending it causes syntax errors.
+        if self._get_openssh_version() < 7.4:
+            findings.append(self.audit_protocol_version())
+        else:
+            findings.append(
+                AuditFinding(
+                    check_id="SSH-006", 
+                    category="ssh_security", 
+                    title="Ensure SSH Protocol version is strictly 2", 
+                    severity=Severity.HIGH, 
+                    status=Status.SKIP, 
+                    description="OpenSSH version >= 7.4 detected. Protocol 2 is implicitly enforced and the directive is obsolete.", 
+                    evidence="OpenSSH >= 7.4"
+                )
+            )
+            
+        return findings
 
     def audit_permit_root_login(self) -> AuditFinding:
         """SSH-001: Ensure SSH Root Login is disabled."""
@@ -180,7 +250,7 @@ class SshAuditModule:
         except ValueError:
             val = 6
 
-        if val <= 4:
+        if 0 < val <= 4:
             return AuditFinding(
                 check_id=check_id,
                 category="ssh_security",
@@ -199,7 +269,7 @@ class SshAuditModule:
                 title="Ensure SSH MaxAuthTries is set to 4 or fewer",
                 severity=Severity.MEDIUM,
                 status=Status.FAIL,
-                description=f"MaxAuthTries ({val}) exceeds maximum threshold of 4.",
+                description=f"MaxAuthTries ({val}) is invalid or exceeds maximum threshold of 4.",
                 evidence=f"MaxAuthTries = '{val}'",
                 recommendation="Set 'MaxAuthTries 4' in /etc/ssh/sshd_config.",
                 remediable=True,

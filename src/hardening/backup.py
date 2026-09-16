@@ -44,6 +44,7 @@ class BackupManager:
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         snapshot_dir = self.base_dir / f"backup_{ts}"
         snapshot_dir.mkdir(parents=True, exist_ok=True)
+        os.chmod(snapshot_dir, 0o700)
         self.current_snapshot_dir = snapshot_dir
 
         self.manifest_data = {
@@ -63,12 +64,14 @@ class BackupManager:
         target = Path(target_filepath).resolve()
         if not target.exists():
             logger.debug(f"File '{target}' does not exist yet; recording non-existence for rollback.")
-            if self.current_snapshot_dir:
-                self.manifest_data["files"].append({
-                    "target_path": str(target),
-                    "backup_path": None,
-                    "existed": False
-                })
+            if not self.current_snapshot_dir:
+                self.create_snapshot_session()
+            self.manifest_data["files"].append({
+                "target_path": str(target),
+                "backup_path": None,
+                "existed": False
+            })
+            self._save_manifest()
             return None
 
         if not self.current_snapshot_dir:
@@ -178,8 +181,12 @@ class BackupManager:
                         target_file.parent.mkdir(parents=True, exist_ok=True)
                         shutil.copy2(backup_file, target_file)
                         mode_str = entry.get("mode_octal", "0644")
+                        owner = entry.get("owner")
+                        group = entry.get("group")
                         try:
                             os.chmod(target_file, int(mode_str, 8))
+                            if owner or group:
+                                shutil.chown(target_file, user=owner, group=group)
                         except Exception:
                             pass
                         logger.info(f"Restored file '{target_file}' from '{backup_file}' (Perms: {mode_str})")

@@ -48,7 +48,7 @@ class SysctlFixer:
                     logger.info(f"  [DRY-RUN] Proposed: {line}")
             return {"status": "PLANNED", "details": "Dry-run simulation completed for sysctl configuration."}
 
-        self.backup_mgr.backup_file(self.config_path)
+        backup_path = self.backup_mgr.backup_file(self.config_path)
 
         if not safe_write_file(self.config_path, sysctl_content, mode=0o644):
             return {"status": "FAILED", "details": "Failed to write sysctl configuration."}
@@ -58,4 +58,10 @@ class SysctlFixer:
             logger.info("Successfully applied sysctl kernel network parameters.")
             return {"status": "APPLIED", "details": "Applied /etc/sysctl.d/99-secureaudit.conf parameters."}
         else:
+            logger.error(f"sysctl command failed: {stderr}. Rolling back sysctl configuration...")
+            if backup_path and backup_path.exists():
+                import shutil
+                shutil.copy2(backup_path, self.config_path)
+            else:
+                self.config_path.unlink(missing_ok=True)
             return {"status": "FAILED", "details": f"sysctl command failed: {stderr}"}

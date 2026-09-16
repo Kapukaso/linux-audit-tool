@@ -5,10 +5,9 @@ Author: Kartik Soni
 Safely updates SSH directives with syntax verification (sshd -t) and transactional rollback.
 """
 
-import re
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from src.core.logger import AuditLogger
 from src.core.utils import command_exists, run_command, safe_read_file, safe_write_file
@@ -42,6 +41,23 @@ class SshFixer:
             "Protocol": "2"
         }
 
+        # Detect OpenSSH version to omit Protocol 2 on >= 7.4
+        ssh_version_str = ""
+        if command_exists("ssh"):
+            _, out, err = run_command(["ssh", "-V"])
+            ssh_version_str = err if err else out
+        if "OpenSSH_" in ssh_version_str:
+            try:
+                ver_part = ssh_version_str.split("OpenSSH_")[1].split()[0]
+                # ver_part e.g. "8.9p1" or "7.2p2"
+                major_minor = ver_part.split("p")[0].split(".")
+                major = int(major_minor[0])
+                minor = int(major_minor[1])
+                if major > 7 or (major == 7 and minor >= 4):
+                    del desired_settings["Protocol"]
+            except Exception:
+                pass
+
         if dry_run:
             logger.info("[DRY-RUN] Hardening SSH Configuration:")
             for k, v in desired_settings.items():
@@ -56,9 +72,14 @@ class SshFixer:
         lines = content.splitlines()
         updated_keys = set()
         new_lines = []
+        
+        match_idx = -1
 
-        for line in lines:
+        for i, line in enumerate(lines):
             stripped = line.strip()
+            if stripped.lower().startswith("match "):
+                if match_idx == -1:
+                    match_idx = len(new_lines)
             if not stripped or stripped.startswith("#"):
                 new_lines.append(line)
                 continue
@@ -78,10 +99,17 @@ class SshFixer:
             else:
                 new_lines.append(line)
 
-        # Append missing directives
+        # Append missing directives before the first Match block
+        missing_lines = []
         for d_key, d_val in desired_settings.items():
             if d_key not in updated_keys:
-                new_lines.append(f"{d_key} {d_val}")
+                missing_lines.append(f"{d_key} {d_val}")
+
+        if missing_lines:
+            if match_idx != -1:
+                new_lines = new_lines[:match_idx] + missing_lines + new_lines[match_idx:]
+            else:
+                new_lines.extend(missing_lines)
 
         new_content = "\n".join(new_lines) + "\n"
 

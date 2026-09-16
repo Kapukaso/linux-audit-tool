@@ -11,7 +11,6 @@ from typing import List, Optional
 from src import __author__, __version__
 from src.core.baseline import BaselineManager
 from src.core.logger import AuditLogger
-from src.core.models import RiskLevel
 from src.core.utils import is_root
 
 
@@ -139,84 +138,91 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.verbose:
         handle_baseline_summary(baseline_mgr)
 
-    if args.command == "system-info":
-        from src.modules.system_info import SystemInfoCollector
-        collector = SystemInfoCollector()
-        meta = collector.collect()
-        print("\n" + "=" * 60)
-        print("SYSTEM INFORMATION SUMMARY")
-        print("=" * 60)
-        print(f"  Hostname:       {meta.hostname}")
-        print(f"  OS Name:        {meta.os_name}")
-        print(f"  OS Version:     {meta.os_version}")
-        print(f"  Kernel:         {meta.kernel_version}")
-        print(f"  Architecture:   {meta.architecture}")
-        print(f"  CPU Info:       {meta.cpu_info}")
-        print(f"  Total Memory:   {meta.memory_total_mb} MB")
-        print(f"  Free Memory:    {meta.memory_free_mb} MB")
-        if meta.disk_usage:
-            print(f"  Root Disk:      {meta.disk_usage.get('used', 'N/A')} / {meta.disk_usage.get('size', 'N/A')} ({meta.disk_usage.get('use_percent', 'N/A')} used)")
-        print(f"  Interfaces:     {len(meta.network_interfaces)} detected")
-        print("=" * 60 + "\n")
-        return 0
-
-    elif args.command in ["audit", "score", "report"]:
-        from src.core.engine import AuditEngine
-        from src.core.scoring import ScoringEngine
-        from src.reporters.html_reporter import HtmlReporter
-        from src.reporters.json_reporter import JsonReporter
-        from src.reporters.console_reporter import ConsoleReporter
-
-        target_cat = getattr(args, "category", "all")
-        print(f"\n[*] Running Audit & Scoring Engine (Category: {target_cat})...")
-
-        engine = AuditEngine(baseline_mgr)
-        raw_report = engine.run_audit(target_cat)
-        scoring = ScoringEngine(baseline_mgr)
-        report = scoring.evaluate_report(raw_report)
-
-        if args.command == "score":
-            print("\n" + "=" * 70)
-            print("SECURITY POSTURE SCORECARD")
-            print("=" * 70)
-            print(f"  OVERALL SECURITY SCORE:  {report.overall_score} / 100")
-            print(f"  OVERALL RISK LEVEL:      {report.risk_level.value}")
-            print(f"  EVALUATED CHECKS:        {report.summary['total']} Total ({report.summary['passed']} passed, {report.summary['failed']} failed, {report.summary['warnings']} warnings)")
-            print("\n[CATEGORY BREAKDOWN]")
-            for cat_id, cs in report.category_scores.items():
-                print(f"  - {cs.category_name:<36} Score: {cs.score:>5.1f}% ({cs.passed_checks}/{cs.total_checks} passed)")
-            print("=" * 70 + "\n")
+    try:
+        if args.command == "system-info":
+            from src.modules.system_info import SystemInfoCollector
+            collector = SystemInfoCollector()
+            meta = collector.collect()
+            print("\n" + "=" * 60)
+            print("SYSTEM INFORMATION SUMMARY")
+            print("=" * 60)
+            print(f"  Hostname:       {meta.hostname}")
+            print(f"  OS Name:        {meta.os_name}")
+            print(f"  OS Version:     {meta.os_version}")
+            print(f"  Kernel:         {meta.kernel_version}")
+            print(f"  Architecture:   {meta.architecture}")
+            print(f"  CPU Info:       {meta.cpu_info}")
+            print(f"  Total Memory:   {meta.memory_total_mb} MB")
+            print(f"  Free Memory:    {meta.memory_free_mb} MB")
+            if meta.disk_usage:
+                print(f"  Root Disk:      {meta.disk_usage.get('used', 'N/A')} / {meta.disk_usage.get('size', 'N/A')} ({meta.disk_usage.get('use_percent', 'N/A')} used)")
+            print(f"  Interfaces:     {len(meta.network_interfaces)} detected")
+            print("=" * 60 + "\n")
             return 0
 
-        # Generate reports based on --format
-        out_dir = Path(args.output) if args.output else Path("reports")
-        out_dir.mkdir(parents=True, exist_ok=True)
-        rpt_fmt = getattr(args, "format", "all")
+        elif args.command in ["audit", "score", "report"]:
+            from src.core.engine import AuditEngine
+            from src.core.scoring import ScoringEngine
+            from src.reporters.html_reporter import HtmlReporter
+            from src.reporters.json_reporter import JsonReporter
+            from src.reporters.console_reporter import ConsoleReporter
 
-        generated_paths = []
-        if rpt_fmt in ["all", "html"]:
-            html_rep = HtmlReporter(report)
-            html_path = out_dir / "report.html"
-            if html_rep.export_to_file(html_path):
-                generated_paths.append(("HTML Report", html_path))
+            target_cat = getattr(args, "category", "all")
+            print(f"\n[*] Running Audit & Scoring Engine (Category: {target_cat})...")
 
-        if rpt_fmt in ["all", "json"]:
-            json_rep = JsonReporter(report)
-            json_path = out_dir / "report.json"
-            if json_rep.export_to_file(json_path):
-                generated_paths.append(("JSON Report", json_path))
+            engine = AuditEngine(baseline_mgr)
+            raw_report = engine.run_audit(target_cat)
+            scoring = ScoringEngine(baseline_mgr)
+            report = scoring.evaluate_report(raw_report)
 
-        if rpt_fmt in ["all", "txt"]:
-            console_rep = ConsoleReporter(report)
-            txt_path = out_dir / "report.txt"
-            if console_rep.export_to_file(txt_path):
-                generated_paths.append(("TXT Report", txt_path))
+            if args.command == "score":
+                print("\n" + "=" * 70)
+                print("SECURITY POSTURE SCORECARD")
+                print("=" * 70)
+                print(f"  OVERALL SECURITY SCORE:  {report.overall_score} / 100")
+                print(f"  OVERALL RISK LEVEL:      {report.risk_level.value}")
+                print(f"  EVALUATED CHECKS:        {report.summary['total']} Total ({report.summary['passed']} passed, {report.summary['failed']} failed, {report.summary['warnings']} warnings)")
+                print("\n[CATEGORY BREAKDOWN]")
+                for cat_id, cs in report.category_scores.items():
+                    print(f"  - {cs.category_name:<36} Score: {cs.score:>5.1f}% ({cs.passed_checks}/{cs.total_checks} passed)")
+                print("=" * 70 + "\n")
+                return 0
 
-        print(f"\n[*] Reports successfully generated in '{out_dir.resolve()}':")
-        for label, path in generated_paths:
-            print(f"    - {label:<12}: {path.resolve()}")
-        print()
-        return 0
+            # Generate reports based on --format
+            out_path = Path(args.output) if args.output else Path("reports")
+            is_file = bool(out_path.suffix)
+            out_dir = out_path.parent if is_file else out_path
+            out_dir.mkdir(parents=True, exist_ok=True)
+            rpt_fmt = getattr(args, "format", "all")
+
+            generated_paths = []
+            if rpt_fmt in ["all", "html"]:
+                html_rep = HtmlReporter(report)
+                html_path = out_path if is_file and out_path.suffix == ".html" else out_dir / "report.html"
+                if html_rep.export_to_file(html_path):
+                    generated_paths.append(("HTML Report", html_path))
+
+            if rpt_fmt in ["all", "json"]:
+                json_rep = JsonReporter(report)
+                json_path = out_path if is_file and out_path.suffix == ".json" else out_dir / "report.json"
+                if json_rep.export_to_file(json_path):
+                    generated_paths.append(("JSON Report", json_path))
+
+            if rpt_fmt in ["all", "txt"]:
+                console_rep = ConsoleReporter(report)
+                txt_path = out_path if is_file and out_path.suffix == ".txt" else out_dir / "report.txt"
+                if console_rep.export_to_file(txt_path):
+                    generated_paths.append(("TXT Report", txt_path))
+
+            print(f"\n[*] Reports successfully generated in '{out_dir.resolve()}':")
+            for label, path in generated_paths:
+                print(f"    - {label:<12}: {path.resolve()}")
+            print()
+            return 0
+    except Exception as exc:
+        logger.error(f"Command execution failed: {exc}")
+        print(f"\n[-] Error: Command execution failed: {exc}")
+        return 1
 
     elif args.command == "harden":
         from src.hardening.manager import HardeningManager
@@ -224,7 +230,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         auto_confirm = getattr(args, "yes", False)
         rollback_id = getattr(args, "rollback", None)
 
-        if not is_dry and not rollback_id and not is_root():
+        if not is_dry and not is_root():
             logger.error("Active hardening requires root privileges. Please run with sudo.")
             print("\n[-] Error: Active hardening requires root privileges. Please run with sudo.")
             return 1

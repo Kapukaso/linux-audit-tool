@@ -36,16 +36,16 @@ def main():
     pre_report = scoring.evaluate_report(engine.run_audit("all"))
     dur_pre = (time.perf_counter() - start_pre) * 1000  # ms
 
-    # 2. Hardening Execution Simulation (Dry-Run Mode for safety)
-    print("\n[*] Executing HARDENING Pipeline (Dry-Run Simulation)...")
+    # 2. Hardening Execution
+    print("\n[*] Executing HARDENING Pipeline (Active Remediation)...")
     start_harden = time.perf_counter()
-    actions, pre_rep, post_rep = hardener.execute_hardening(dry_run=True, auto_confirm=True)
+    actions, pre_rep, post_rep = hardener.execute_hardening(dry_run=False, auto_confirm=True)
     dur_harden = (time.perf_counter() - start_harden) * 1000  # ms
 
     # 3. Post-Hardening Simulated Audit
-    print("\n[*] Running POST-HARDENING Verification Audit...")
+    print("\n[*] Processing POST-HARDENING Verification Metrics...")
     start_post = time.perf_counter()
-    post_report = scoring.evaluate_report(engine.run_audit("all"))
+    post_report = post_rep if post_rep else scoring.evaluate_report(engine.run_audit("all"))
     dur_post = (time.perf_counter() - start_post) * 1000  # ms
 
     # 4. Print Comparative Metrics Table

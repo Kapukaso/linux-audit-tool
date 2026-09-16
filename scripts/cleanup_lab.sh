@@ -53,6 +53,13 @@ if [ -f "$SYSCTL_DROPIN" ]; then
     rm -f "$SYSCTL_DROPIN"
     log_success "Removed sysctl vulnerable drop-in config ($SYSCTL_DROPIN)."
     if command -v sysctl >/dev/null 2>&1; then
+        sysctl -w net.ipv4.ip_forward=0 >/dev/null 2>&1 || true
+        sysctl -w net.ipv4.conf.all.send_redirects=0 >/dev/null 2>&1 || true
+        sysctl -w net.ipv4.conf.default.send_redirects=0 >/dev/null 2>&1 || true
+        sysctl -w net.ipv4.conf.all.accept_redirects=0 >/dev/null 2>&1 || true
+        sysctl -w net.ipv4.conf.default.accept_redirects=0 >/dev/null 2>&1 || true
+        sysctl -w net.ipv4.conf.all.accept_source_route=0 >/dev/null 2>&1 || true
+        sysctl -w net.ipv4.conf.all.log_martians=1 >/dev/null 2>&1 || true
         sysctl --system >/dev/null 2>&1 || true
     fi
 fi
@@ -62,6 +69,16 @@ if [ -f /etc/login.defs.bak ]; then
     mv /etc/login.defs.bak /etc/login.defs
     log_success "Restored original /etc/login.defs configuration."
 fi
+
+# 6. Re-Lock Root Account and Restart Security Daemons
+passwd -l root 2>/dev/null || true
+log_success "Root account locked."
+
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl start rsyslog 2>/dev/null || true
+    systemctl start auditd 2>/dev/null || true
+fi
+log_success "Security daemons restarted."
 
 echo ""
 log_success "====================================================================="

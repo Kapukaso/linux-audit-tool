@@ -6,7 +6,7 @@ Coordinates pre-checks, backup snapshotting, dry-run simulation, interactive con
 atomic remediation handlers, post-remediation audit evaluation, and rollback manifests.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from src.core.baseline import BaselineManager
 from src.core.engine import AuditEngine
@@ -93,29 +93,40 @@ class HardeningManager:
         sysctl_fixer = SysctlFixer(self.backup_mgr)
         srv_fixer = ServiceFixer(self.backup_mgr)
 
-        res_ssh = ssh_fixer.apply_hardening(dry_run=dry_run)
-        actions.append(HardeningAction("ACT-SSH", "SSH-ALL", "SSH Server Hardening", status=res_ssh["status"], details=res_ssh["details"]))
+        def run_remedy(prefix, func, action_id, target, title, *args, **kwargs):
+            if any(f.check_id.startswith(prefix) for f in remediable_findings):
+                try:
+                    res = func(*args, dry_run=dry_run, **kwargs)
+                    actions.append(HardeningAction(action_id, target, title, status=res.get("status", "FAILED"), details=res.get("details", "")))
+                except Exception as e:
+                    logger.error(f"Failed to execute remediation {action_id}: {e}")
+                    actions.append(HardeningAction(action_id, target, title, status="FAILED", details=f"Exception: {str(e)}"))
 
-        res_perm = perm_fixer.fix_critical_files(dry_run=dry_run)
-        actions.append(HardeningAction("ACT-FS-PERM", "FS-001..004", "File Permissions Fixer", status=res_perm["status"], details=res_perm["details"]))
+        run_remedy("SSH-", ssh_fixer.apply_hardening, "ACT-SSH", "SSH-ALL", "SSH Server Hardening")
+        run_remedy("FS-001", perm_fixer.fix_critical_files, "ACT-FS-PERM", "FS-001..004", "File Permissions Fixer")
+        run_remedy("FS-002", perm_fixer.fix_critical_files, "ACT-FS-PERM", "FS-001..004", "File Permissions Fixer")
+        run_remedy("FS-003", perm_fixer.fix_critical_files, "ACT-FS-PERM", "FS-001..004", "File Permissions Fixer")
+        run_remedy("FS-004", perm_fixer.fix_critical_files, "ACT-FS-PERM", "FS-001..004", "File Permissions Fixer")
 
-        # World-writable fix
         ww_findings = [f for f in remediable_findings if f.check_id == "FS-005"]
         if ww_findings:
-            res_ww = perm_fixer.fix_world_writable(["/tmp", "/var/tmp"], dry_run=dry_run)
-            actions.append(HardeningAction("ACT-FS-WW", "FS-005", "World-Writable Bit Removal", status=res_ww["status"], details=res_ww["details"]))
+            ww_files = []
+            for f in ww_findings:
+                if "): " in f.evidence:
+                    paths = f.evidence.split("): ")[1].split(", ")
+                    ww_files.extend(paths)
+            if ww_files:
+                try:
+                    res_ww = perm_fixer.fix_world_writable(ww_files, dry_run=dry_run)
+                    actions.append(HardeningAction("ACT-FS-WW", "FS-005", "World-Writable Bit Removal", status=res_ww.get("status", "FAILED"), details=res_ww.get("details", "")))
+                except Exception as e:
+                    logger.error(f"Failed to execute ACT-FS-WW: {e}")
+                    actions.append(HardeningAction("ACT-FS-WW", "FS-005", "World-Writable Bit Removal", status="FAILED", details=f"Exception: {str(e)}"))
 
-        res_fw = fw_fixer.apply_hardening(dry_run=dry_run)
-        actions.append(HardeningAction("ACT-FW", "FW-001..003", "Host Firewall Hardening", status=res_fw["status"], details=res_fw["details"]))
-
-        res_sysctl = sysctl_fixer.apply_hardening(dry_run=dry_run)
-        actions.append(HardeningAction("ACT-SYSCTL", "NET-003", "Sysctl Kernel Hardening", status=res_sysctl["status"], details=res_sysctl["details"]))
-
-        res_srv = srv_fixer.disable_obsolete_services(dry_run=dry_run)
-        actions.append(HardeningAction("ACT-SRV-OBS", "SRV-001", "Disable Obsolete Daemons", status=res_srv["status"], details=res_srv["details"]))
-
-        res_sec_srv = srv_fixer.enable_security_services(dry_run=dry_run)
-        actions.append(HardeningAction("ACT-SRV-SEC", "LOG-001..002", "Enable Security Daemons", status=res_sec_srv["status"], details=res_sec_srv["details"]))
+        run_remedy("FW-", fw_fixer.apply_hardening, "ACT-FW", "FW-001..003", "Host Firewall Hardening")
+        run_remedy("NET-003", sysctl_fixer.apply_hardening, "ACT-SYSCTL", "NET-003", "Sysctl Kernel Hardening")
+        run_remedy("SRV-001", srv_fixer.disable_obsolete_services, "ACT-SRV-OBS", "SRV-001", "Disable Obsolete Daemons")
+        run_remedy("LOG-", srv_fixer.enable_security_services, "ACT-SRV-SEC", "LOG-001..002", "Enable Security Daemons")
 
         # 5. Run Post-Hardening Verification Audit
         if not dry_run:

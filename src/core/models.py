@@ -58,6 +58,14 @@ class RiskLevel(str, Enum):
         return cls.LOW
 
 
+class HardeningStatus(str, Enum):
+    """Status of a hardening action."""
+    PLANNED = "PLANNED"
+    APPLIED = "APPLIED"
+    FAILED = "FAILED"
+    ROLLED_BACK = "ROLLED_BACK"
+
+
 @dataclass
 class AuditFinding:
     """Individual security check result."""
@@ -75,8 +83,8 @@ class AuditFinding:
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data["severity"] = self.severity.value
-        data["status"] = self.status.value
+        data["severity"] = self.severity.value if hasattr(self.severity, "value") else str(self.severity)
+        data["status"] = self.status.value if hasattr(self.status, "value") else str(self.status)
         return data
 
 
@@ -132,6 +140,8 @@ class AuditReport:
         "passed": 0,
         "failed": 0,
         "warnings": 0,
+        "skipped": 0,
+        "errors": 0,
         "critical": 0,
         "high": 0,
         "medium": 0,
@@ -148,8 +158,8 @@ class AuditReport:
             "system_meta": self.system_meta.to_dict(),
             "overall_score": round(self.overall_score, 1),
             "risk_level": self.risk_level.value,
-            "findings": [f.to_dict() for f in self.findings],
-            "category_scores": {k: v.to_dict() for k, v in self.category_scores.items()},
+            "findings": [f.to_dict() if hasattr(f, "to_dict") else f for f in self.findings],
+            "category_scores": {k: v.to_dict() if hasattr(v, "to_dict") else v for k, v in self.category_scores.items()},
             "summary": self.summary
         }
 
@@ -162,9 +172,11 @@ class HardeningAction:
     title: str
     target_path: Optional[str] = None
     backup_path: Optional[str] = None
-    status: str = "PLANNED"  # PLANNED, APPLIED, FAILED, ROLLED_BACK
+    status: HardeningStatus = HardeningStatus.PLANNED
     details: str = ""
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+        data = asdict(self)
+        data["status"] = self.status.value if hasattr(self.status, "value") else str(self.status)
+        return data

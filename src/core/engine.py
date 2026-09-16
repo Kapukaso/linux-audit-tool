@@ -48,51 +48,52 @@ class AuditEngine:
         findings: List[AuditFinding] = []
         target_cat = category_filter.lower()
 
-        # User Security
-        if target_cat in ["all", "user_security"]:
-            user_mod = UserAuditModule(self.baseline_mgr.get_checks_by_category("user_security"))
-            findings.extend(user_mod.audit_all())
+        if target_cat != "all":
+            valid_cats = {k.lower() for k in self.baseline_mgr.get_categories().keys()}
+            if target_cat not in valid_cats:
+                logger.error(f"Invalid category filter: '{category_filter}'. Valid categories: {', '.join(valid_cats)}")
+                report.findings = findings
+                self._calculate_summary(report)
+                return report
 
-        # SSH Security
-        if target_cat in ["all", "ssh_security"]:
-            ssh_mod = SshAuditModule(self.baseline_mgr.get_checks_by_category("ssh_security"))
-            findings.extend(ssh_mod.audit_all())
+        module_mapping = {
+            "user_security": UserAuditModule,
+            "ssh_security": SshAuditModule,
+            "filesystem_security": FilesystemAuditModule,
+            "firewall_security": FirewallAuditModule,
+            "network_security": NetworkAuditModule,
+            "service_security": ServiceAuditModule,
+            "patch_security": PatchAuditModule,
+            "logging_security": LoggingAuditModule,
+        }
 
-        # Filesystem Security
-        if target_cat in ["all", "filesystem_security"]:
-            fs_mod = FilesystemAuditModule(self.baseline_mgr.get_checks_by_category("filesystem_security"))
-            findings.extend(fs_mod.audit_all())
-
-        # Firewall Security
-        if target_cat in ["all", "firewall_security"]:
-            fw_mod = FirewallAuditModule(self.baseline_mgr.get_checks_by_category("firewall_security"))
-            findings.extend(fw_mod.audit_all())
-
-        # Network Security
-        if target_cat in ["all", "network_security"]:
-            net_mod = NetworkAuditModule(self.baseline_mgr.get_checks_by_category("network_security"))
-            findings.extend(net_mod.audit_all())
-
-        # Service Security
-        if target_cat in ["all", "service_security"]:
-            srv_mod = ServiceAuditModule(self.baseline_mgr.get_checks_by_category("service_security"))
-            findings.extend(srv_mod.audit_all())
-
-        # Patch Management
-        if target_cat in ["all", "patch_security"]:
-            patch_mod = PatchAuditModule(self.baseline_mgr.get_checks_by_category("patch_security"))
-            findings.extend(patch_mod.audit_all())
-
-        # Logging Security
-        if target_cat in ["all", "logging_security"]:
-            log_mod = LoggingAuditModule(self.baseline_mgr.get_checks_by_category("logging_security"))
-            findings.extend(log_mod.audit_all())
+        for cat, mod_cls in module_mapping.items():
+            if target_cat in ["all", cat]:
+                self._run_module_safe(mod_cls, cat, findings)
 
         report.findings = findings
         self._calculate_summary(report)
 
         logger.info(f"Audit completed: {len(findings)} checks evaluated ({report.summary['passed']} passed, {report.summary['failed']} failed, {report.summary['warnings']} warnings).")
         return report
+
+    def _run_module_safe(self, module_cls, category_name: str, findings: List[AuditFinding]) -> None:
+        try:
+            checks = self.baseline_mgr.get_checks_by_category(category_name)
+            mod = module_cls(checks)
+            findings.extend(mod.audit_all())
+        except Exception as exc:
+            logger.error(f"Audit module {module_cls.__name__} crashed: {exc}")
+            findings.append(AuditFinding(
+                check_id="SYS-ERR",
+                category=category_name,
+                title=f"{module_cls.__name__} Execution Failure",
+                severity=Severity.CRITICAL,
+                status=Status.ERROR,
+                description=f"Unhandled exception during module execution: {exc}",
+                evidence=str(exc),
+                recommendation="Review audit logs and report bug."
+            ))
 
     def _calculate_summary(self, report: AuditReport) -> None:
         """Aggregates status and severity metrics into report.summary."""
@@ -101,6 +102,8 @@ class AuditEngine:
             "passed": 0,
             "failed": 0,
             "warnings": 0,
+            "skipped": 0,
+            "errors": 0,
             "critical": 0,
             "high": 0,
             "medium": 0,
@@ -115,16 +118,21 @@ class AuditEngine:
                 summary["failed"] += 1
             elif finding.status == Status.WARN:
                 summary["warnings"] += 1
+            elif finding.status == Status.SKIP:
+                summary["skipped"] += 1
+            elif finding.status == Status.ERROR:
+                summary["errors"] += 1
 
-            if finding.severity == Severity.CRITICAL:
-                summary["critical"] += 1
-            elif finding.severity == Severity.HIGH:
-                summary["high"] += 1
-            elif finding.severity == Severity.MEDIUM:
-                summary["medium"] += 1
-            elif finding.severity == Severity.LOW:
-                summary["low"] += 1
-            elif finding.severity == Severity.INFO:
-                summary["info"] += 1
+            if finding.status in (Status.FAIL, Status.WARN, Status.ERROR):
+                if finding.severity == Severity.CRITICAL:
+                    summary["critical"] += 1
+                elif finding.severity == Severity.HIGH:
+                    summary["high"] += 1
+                elif finding.severity == Severity.MEDIUM:
+                    summary["medium"] += 1
+                elif finding.severity == Severity.LOW:
+                    summary["low"] += 1
+                elif finding.severity == Severity.INFO:
+                    summary["info"] += 1
 
         report.summary = summary

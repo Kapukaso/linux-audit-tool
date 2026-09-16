@@ -28,6 +28,21 @@ class FilesystemAuditModule:
     def __init__(self, baseline_checks: Optional[List[Dict[str, Any]]] = None):
         self.checks = baseline_checks or []
 
+    def _get_check_config(self, check_id: str) -> Optional[Dict[str, Any]]:
+        for check in self.checks:
+            if check.get("id") == check_id:
+                return check
+        return None
+
+    def _get_severity(self, config: Optional[Dict[str, Any]], default: Severity) -> Severity:
+        if not config:
+            return default
+        sev_str = config.get("severity", default.value)
+        try:
+            return Severity(sev_str.upper())
+        except ValueError:
+            return default
+
     def audit_all(self) -> List[AuditFinding]:
         """Executes all filesystem security checks."""
         return [
@@ -42,6 +57,12 @@ class FilesystemAuditModule:
     def audit_passwd_permissions(self) -> AuditFinding:
         """FS-001: Verify permissions and ownership of /etc/passwd."""
         check_id = "FS-001"
+        config = self._get_check_config(check_id)
+        severity = self._get_severity(config, Severity.HIGH)
+
+        expected_owner = config.get("expected_owner", "root") if config else "root"
+        expected_group = config.get("expected_group", "root") if config else "root"
+        
         meta = get_file_metadata("/etc/passwd")
 
         if not meta:
@@ -49,26 +70,26 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/passwd",
-                severity=Severity.HIGH,
-                status=Status.FAIL,
+                severity=severity,
+                status=Status.WARN,
                 description="File /etc/passwd does not exist or is inaccessible!",
-                evidence="File /etc/passwd not found.",
-                recommendation="Recreate or restore /etc/passwd.",
+                evidence="File /etc/passwd not found or permission denied.",
+                recommendation="Run secureaudit with sufficient privileges or restore /etc/passwd.",
                 remediable=False
             )
 
         mode = meta["mode_octal"]
         owner = meta["owner"]
 
-        if mode == "0644" and owner == "root":
+        if mode in ["0644", "0444"] and owner == expected_owner and meta.get("group") == expected_group:
             return AuditFinding(
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/passwd",
-                severity=Severity.HIGH,
+                severity=severity,
                 status=Status.PASS,
-                description="Permissions on /etc/passwd are correctly set to 0644 root:root.",
-                evidence=f"Permissions: {mode}, Owner: {owner}:{meta['group']}",
+                description=f"Permissions on /etc/passwd are correctly set to {mode} {expected_owner}:{expected_group}.",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
                 recommendation="None. Current configuration is secure.",
                 remediable=True
             )
@@ -77,18 +98,25 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/passwd",
-                severity=Severity.HIGH,
+                severity=severity,
                 status=Status.FAIL,
                 description="Insecure permissions or ownership on /etc/passwd!",
-                evidence=f"Permissions: {mode} (expected 0644), Owner: {owner} (expected root)",
-                recommendation="Run 'chmod 0644 /etc/passwd' and 'chown root:root /etc/passwd'.",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
+                recommendation=f"Run 'chmod 0644 /etc/passwd' and 'chown {expected_owner}:{expected_group} /etc/passwd'.",
                 remediable=True,
-                remediation_details="chmod 0644 /etc/passwd; chown root:root /etc/passwd"
+                remediation_details=f"chmod 0644 /etc/passwd; chown {expected_owner}:{expected_group} /etc/passwd"
             )
 
     def audit_shadow_permissions(self) -> AuditFinding:
         """FS-002: Verify permissions and ownership of /etc/shadow."""
         check_id = "FS-002"
+        config = self._get_check_config(check_id)
+        severity = self._get_severity(config, Severity.CRITICAL)
+
+        allowed_modes = config.get("allowed_perms", ["0640", "0600", "0000"]) if config else ["0640", "0600", "0000"]
+        expected_owner = config.get("expected_owner", "root") if config else "root"
+        expected_group = config.get("expected_group", "shadow") if config else "shadow"
+
         meta = get_file_metadata("/etc/shadow")
 
         if not meta:
@@ -96,27 +124,26 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/shadow",
-                severity=Severity.CRITICAL,
+                severity=severity,
                 status=Status.WARN,
                 description="Permission denied or file /etc/shadow inaccessible.",
                 evidence="File /etc/shadow could not be inspected without root permissions.",
                 recommendation="Run audit with root privileges to inspect /etc/shadow.",
-                remediable=True
+                remediable=False
             )
 
         mode = meta["mode_octal"]
         owner = meta["owner"]
-        allowed_modes = {"0640", "0600", "0000"}
 
-        if mode in allowed_modes and owner == "root":
+        if mode in allowed_modes and owner == expected_owner and meta.get("group") in [expected_group, "root"]:
             return AuditFinding(
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/shadow",
-                severity=Severity.CRITICAL,
+                severity=severity,
                 status=Status.PASS,
                 description=f"Permissions on /etc/shadow ({mode}) are secure.",
-                evidence=f"Permissions: {mode}, Owner: {owner}:{meta['group']}",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
                 recommendation="None. Current configuration is secure.",
                 remediable=True
             )
@@ -125,18 +152,24 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/shadow",
-                severity=Severity.CRITICAL,
+                severity=severity,
                 status=Status.FAIL,
                 description="Insecure permissions on /etc/shadow! Password hashes may be exposed.",
-                evidence=f"Permissions: {mode} (expected 0640/0600), Owner: {owner}",
-                recommendation="Run 'chmod 0640 /etc/shadow' and 'chown root:shadow /etc/shadow'.",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
+                recommendation=f"Run 'chmod 0640 /etc/shadow' and 'chown {expected_owner}:{expected_group} /etc/shadow'.",
                 remediable=True,
-                remediation_details="chmod 0640 /etc/shadow; chown root:shadow /etc/shadow"
+                remediation_details=f"chmod 0640 /etc/shadow; chown {expected_owner}:{expected_group} /etc/shadow"
             )
 
     def audit_group_permissions(self) -> AuditFinding:
         """FS-003: Verify permissions and ownership of /etc/group."""
         check_id = "FS-003"
+        config = self._get_check_config(check_id)
+        severity = self._get_severity(config, Severity.MEDIUM)
+
+        expected_owner = config.get("expected_owner", "root") if config else "root"
+        expected_group = config.get("expected_group", "root") if config else "root"
+
         meta = get_file_metadata("/etc/group")
 
         if not meta:
@@ -144,26 +177,26 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/group",
-                severity=Severity.MEDIUM,
-                status=Status.FAIL,
+                severity=severity,
+                status=Status.WARN,
                 description="File /etc/group does not exist or is inaccessible.",
-                evidence="File /etc/group missing.",
-                recommendation="Restore /etc/group.",
+                evidence="File /etc/group missing or permission denied.",
+                recommendation="Run secureaudit with sufficient privileges or restore /etc/group.",
                 remediable=False
             )
 
         mode = meta["mode_octal"]
         owner = meta["owner"]
 
-        if mode == "0644" and owner == "root":
+        if mode in ["0644", "0444"] and owner == expected_owner and meta.get("group") == expected_group:
             return AuditFinding(
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/group",
-                severity=Severity.MEDIUM,
+                severity=severity,
                 status=Status.PASS,
-                description="Permissions on /etc/group are correctly set to 0644.",
-                evidence=f"Permissions: {mode}, Owner: {owner}",
+                description="Permissions on /etc/group are correctly set.",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
                 recommendation="None. Current configuration is secure.",
                 remediable=True
             )
@@ -172,18 +205,25 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/group",
-                severity=Severity.MEDIUM,
+                severity=severity,
                 status=Status.FAIL,
                 description="Insecure permissions or ownership on /etc/group.",
-                evidence=f"Permissions: {mode} (expected 0644), Owner: {owner}",
-                recommendation="Run 'chmod 0644 /etc/group' and 'chown root:root /etc/group'.",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
+                recommendation=f"Run 'chmod 0644 /etc/group' and 'chown {expected_owner}:{expected_group} /etc/group'.",
                 remediable=True,
-                remediation_details="chmod 0644 /etc/group; chown root:root /etc/group"
+                remediation_details=f"chmod 0644 /etc/group; chown {expected_owner}:{expected_group} /etc/group"
             )
 
     def audit_gshadow_permissions(self) -> AuditFinding:
         """FS-004: Verify permissions and ownership of /etc/gshadow."""
         check_id = "FS-004"
+        config = self._get_check_config(check_id)
+        severity = self._get_severity(config, Severity.HIGH)
+
+        allowed_modes = config.get("allowed_perms", ["0640", "0600", "0000"]) if config else ["0640", "0600", "0000"]
+        expected_owner = config.get("expected_owner", "root") if config else "root"
+        expected_group = config.get("expected_group", "shadow") if config else "shadow"
+
         meta = get_file_metadata("/etc/gshadow")
 
         if not meta:
@@ -191,27 +231,26 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/gshadow",
-                severity=Severity.HIGH,
+                severity=severity,
                 status=Status.WARN,
                 description="File /etc/gshadow inaccessible or missing.",
                 evidence="File /etc/gshadow unreadable without root.",
                 recommendation="Run secureaudit with root privileges.",
-                remediable=True
+                remediable=False
             )
 
         mode = meta["mode_octal"]
         owner = meta["owner"]
-        allowed_modes = {"0640", "0600", "0000"}
 
-        if mode in allowed_modes and owner == "root":
+        if mode in allowed_modes and owner == expected_owner and meta.get("group") in [expected_group, "root"]:
             return AuditFinding(
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/gshadow",
-                severity=Severity.HIGH,
+                severity=severity,
                 status=Status.PASS,
                 description=f"Permissions on /etc/gshadow ({mode}) are secure.",
-                evidence=f"Permissions: {mode}, Owner: {owner}",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
                 recommendation="None. Current configuration is secure.",
                 remediable=True
             )
@@ -220,21 +259,25 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Verify permissions and ownership of /etc/gshadow",
-                severity=Severity.HIGH,
+                severity=severity,
                 status=Status.FAIL,
                 description="Insecure permissions on /etc/gshadow.",
-                evidence=f"Permissions: {mode} (expected 0640/0600), Owner: {owner}",
-                recommendation="Run 'chmod 0640 /etc/gshadow' and 'chown root:shadow /etc/gshadow'.",
+                evidence=f"Permissions: {mode}, Owner: {owner}:{meta.get('group')}",
+                recommendation=f"Run 'chmod 0640 /etc/gshadow' and 'chown {expected_owner}:{expected_group} /etc/gshadow'.",
                 remediable=True,
-                remediation_details="chmod 0640 /etc/gshadow; chown root:shadow /etc/gshadow"
+                remediation_details=f"chmod 0640 /etc/gshadow; chown {expected_owner}:{expected_group} /etc/gshadow"
             )
 
     def audit_world_writable_files(self) -> AuditFinding:
         """FS-005: Check for unconfined world-writable files in target scan paths."""
         check_id = "FS-005"
-        target_dirs = ["/etc", "/var/tmp", "/tmp", "/opt", "/srv"]
+        config = self._get_check_config(check_id)
+        severity = self._get_severity(config, Severity.MEDIUM)
+
+        target_dirs = config.get("scan_paths", ["/etc", "/var/tmp", "/tmp", "/opt", "/srv"]) if config else ["/etc", "/var/tmp", "/tmp", "/opt", "/srv"]
         world_writable_files: List[str] = []
         max_results = 20
+        max_depth = 3
 
         for target in target_dirs:
             path = Path(target)
@@ -242,7 +285,12 @@ class FilesystemAuditModule:
                 continue
 
             try:
-                for root, _, files in os.walk(path):
+                base_depth = len(path.resolve().parts)
+                for root, dirs, files in os.walk(path):
+                    current_depth = len(Path(root).resolve().parts) - base_depth
+                    if current_depth >= max_depth:
+                        dirs.clear() # Stop descending
+
                     for filename in files:
                         filepath = Path(root) / filename
                         # Skip symlinks
@@ -261,16 +309,19 @@ class FilesystemAuditModule:
                         break
             except (PermissionError, OSError):
                 continue
+            
+            if len(world_writable_files) >= max_results:
+                break
 
         if not world_writable_files:
             return AuditFinding(
                 check_id=check_id,
                 category="filesystem_security",
                 title="Check for unconfined world-writable files in common paths",
-                severity=Severity.MEDIUM,
+                severity=severity,
                 status=Status.PASS,
                 description="No unconfined world-writable files discovered in target scan directories.",
-                evidence="0 world-writable files found across /etc, /tmp, /var/tmp, /opt, /srv.",
+                evidence=f"0 world-writable files found across {', '.join(target_dirs)}.",
                 recommendation="None. Current configuration is secure.",
                 remediable=True
             )
@@ -279,7 +330,7 @@ class FilesystemAuditModule:
                 check_id=check_id,
                 category="filesystem_security",
                 title="Check for unconfined world-writable files in common paths",
-                severity=Severity.MEDIUM,
+                severity=severity,
                 status=Status.FAIL,
                 description="World-writable files discovered! Local unprivileged users can alter these files.",
                 evidence=f"World-writable files ({len(world_writable_files)} found): {', '.join(world_writable_files[:5])}",
@@ -291,12 +342,16 @@ class FilesystemAuditModule:
     def audit_suid_sgid_binaries(self) -> AuditFinding:
         """FS-006: Audit SUID/SGID binaries in standard system directories."""
         check_id = "FS-006"
-        target_dirs = ["/bin", "/sbin", "/usr/bin", "/usr/sbin", "/tmp", "/var/tmp"]
+        config = self._get_check_config(check_id)
+        severity = self._get_severity(config, Severity.MEDIUM)
+
+        target_dirs = config.get("scan_paths", ["/bin", "/sbin", "/usr/bin", "/usr/sbin", "/tmp", "/var/tmp"]) if config else ["/bin", "/sbin", "/usr/bin", "/usr/sbin", "/tmp", "/var/tmp"]
         suid_binaries: List[str] = []
+        seen_inodes = set()
         max_results = 25
 
         for target in target_dirs:
-            path = Path(target)
+            path = Path(target).resolve()
             if not path.exists() or not path.is_dir():
                 continue
 
@@ -305,21 +360,27 @@ class FilesystemAuditModule:
                     if entry.is_file() and not entry.is_symlink():
                         try:
                             st = entry.stat()
+                            inode = (st.st_dev, st.st_ino)
+                            if inode in seen_inodes:
+                                continue
                             if st.st_mode & (0o4000 | 0o2000):  # SUID or SGID
                                 suid_binaries.append(str(entry))
+                                seen_inodes.add(inode)
                                 if len(suid_binaries) >= max_results:
                                     break
                         except (PermissionError, OSError):
                             continue
             except (PermissionError, OSError):
                 continue
+            
+            if len(suid_binaries) >= max_results:
+                break
 
-        # Standard expected SUID binaries on Linux (sudo, passwd, su, etc.)
         return AuditFinding(
             check_id=check_id,
             category="filesystem_security",
             title="Audit unauthorized SUID/SGID binaries in standard directories",
-            severity=Severity.MEDIUM,
+            severity=severity,
             status=Status.PASS if len(suid_binaries) < 20 else Status.WARN,
             description=f"Discovered {len(suid_binaries)} SUID/SGID binaries in system paths.",
             evidence=f"SUID/SGID executables found: {', '.join(suid_binaries[:5])}...",

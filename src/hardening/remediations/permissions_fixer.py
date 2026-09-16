@@ -6,6 +6,7 @@ Remediates POSIX permissions and ownership on critical system files and strips w
 """
 
 import os
+import shutil
 import stat
 from pathlib import Path
 from typing import Any, Dict, List
@@ -57,10 +58,11 @@ class PermissionsFixer:
 
             try:
                 os.chmod(filepath, t["mode"])
-                actions_taken.append(f"Applied chmod {oct(t['mode'])[-4:]} on {t['path']}")
-                logger.info(f"Fixed permissions on '{t['path']}' to {oct(t['mode'])[-4:]}")
+                shutil.chown(filepath, user=t["owner"], group=t["group"])
+                actions_taken.append(f"Applied chmod {oct(t['mode'])[-4:]} and chown {t['owner']}:{t['group']} on {t['path']}")
+                logger.info(f"Fixed permissions on '{t['path']}' to {oct(t['mode'])[-4:]} {t['owner']}:{t['group']}")
             except Exception as e:
-                logger.error(f"Failed to set permissions on '{t['path']}': {e}")
+                logger.error(f"Failed to set permissions/ownership on '{t['path']}': {e}")
 
         status = "PLANNED" if dry_run else "APPLIED"
         return {"status": status, "details": "; ".join(actions_taken)}
@@ -70,7 +72,7 @@ class PermissionsFixer:
         fixed_count = 0
         for p_str in target_paths:
             path = Path(p_str)
-            if not path.exists() or path.is_symlink():
+            if not path.exists() or path.is_symlink() or not path.is_file():
                 continue
 
             if dry_run:

@@ -4,9 +4,6 @@ author: "Kartik Soni"
 description: "Comprehensive CIS-aligned security baseline for Ubuntu/Debian Linux systems"
 
 categories:
-  system_info:
-    name: "System Information & Kernel"
-    weight: 5
   user_security:
     name: "User & Privilege Management"
     weight: 20
@@ -30,7 +27,7 @@ categories:
     weight: 5
   logging_security:
     name: "Logging & Accounting"
-    weight: 5
+    weight: 10
 
 checks:
   # ==========================================
@@ -170,6 +167,7 @@ checks:
     path: "/etc/group"
     expected_perms: "0644"
     expected_owner: "root"
+    expected_group: "root"
     remediable: true
 
   - id: "FS-004"

@@ -46,8 +46,8 @@ secureaudit/
 # Clone or navigate to the project directory
 cd linux-security-toolkit
 
-# Install required dependencies
-pip install -r requirements.txt
+# Install the package and dependencies
+pip install .
 ```
 
 ### Basic Usage
@@ -142,4 +142,4 @@ Comprehensive documentation for all 8 project phases is available in the `docs/`
 6. [`phase6_lab_test_scripts_and_metrics.md`](docs/phase6_lab_test_scripts_and_metrics.md): Lab Setup/Cleanup Scripts & Before/After Metrics Analysis.
 7. [`phase7_comprehensive_pytest_suite_expansion.md`](docs/phase7_comprehensive_pytest_suite_expansion.md): 49 Automated Pytest Suite & Edge Case Verification.
 8. [`phase8_internship_report_and_presentation.md`](docs/phase8_internship_report_and_presentation.md): Internship Academic Report, Screenshot Execution Plan & Slide Deck Blueprint.
-9. [`project_issues_and_findings.md`](docs/project_issues_and_findings.md): Comprehensive 28-Issue Code Audit & Remediation Findings Report.
+9. [`project_issues_and_findings.md`](docs/project_issues_and_findings.md): Comprehensive 85-Issue Code Audit & Remediation Findings Report (All 85 issues have been resolved).

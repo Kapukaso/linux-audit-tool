@@ -30,11 +30,7 @@ def is_root() -> bool:
     return False
 
 
-def require_root(action_name: str = "This operation") -> None:
-    """Ensures root privileges are present, exiting cleanly if unprivileged."""
-    if not is_root():
-        logger.error(f"{action_name} requires root privileges (UID 0). Please run with sudo.")
-        sys.exit(1)
+
 
 
 def run_command(
@@ -72,10 +68,8 @@ def run_command(
     except subprocess.TimeoutExpired:
         logger.warning(f"Command '{' '.join(cmd)}' timed out after {timeout}s.")
         return 124, "", f"Command execution timed out after {timeout} seconds."
-    except subprocess.CalledProcessError as cpe:
-        if check:
-            raise
-        return cpe.returncode, cpe.stdout.strip() if cpe.stdout else "", cpe.stderr.strip() if cpe.stderr else ""
+    except subprocess.CalledProcessError:
+        raise
     except Exception as exc:
         logger.error(f"Unexpected error executing '{' '.join(cmd)}': {exc}")
         return 1, "", str(exc)
@@ -86,10 +80,10 @@ def safe_read_file(filepath: Union[str, Path], max_bytes: int = 5_000_000) -> Op
     Reads a file securely with size caps to avoid memory exhaustion (DoS).
     """
     path = Path(filepath)
-    if not path.is_file():
-        return None
-
     try:
+        if not path.is_file():
+            return None
+
         size = path.stat().st_size
         if size > max_bytes:
             logger.warning(f"File {filepath} exceeds size limit ({size} > {max_bytes} bytes).")
@@ -106,20 +100,23 @@ def safe_write_file(filepath: Union[str, Path], content: str, mode: int = 0o600)
     """
     Writes content to a file atomically via a temporary file with secure permissions.
     """
-    target = Path(filepath).resolve()
-    target.parent.mkdir(parents=True, exist_ok=True)
-    temp_file = target.with_suffix(".tmp." + os.urandom(4).hex())
+    target = Path(filepath)
+    temp_file = None
 
     try:
-        with open(temp_file, "w", encoding="utf-8") as f:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temp_file = target.parent / f".{target.name}.tmp.{os.urandom(4).hex()}"
+        
+        flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+        fd = os.open(temp_file, flags, mode)
+        with open(fd, "w", encoding="utf-8") as f:
             f.write(content)
-        # Apply restrictive permissions before moving into place
-        os.chmod(temp_file, mode)
+        
         temp_file.replace(target)
         return True
     except (OSError, IOError) as e:
         logger.error(f"Failed to atomically write to {filepath}: {e}")
-        if temp_file.exists():
+        if temp_file and temp_file.exists():
             temp_file.unlink(missing_ok=True)
         return False
 
@@ -129,25 +126,29 @@ def get_file_metadata(filepath: Union[str, Path]) -> Optional[Dict[str, Any]]:
     Extracts POSIX permissions, owner, group, and octal mode of a file.
     """
     path = Path(filepath)
-    if not path.exists():
-        return None
 
     try:
+        if not path.exists():
+            return None
+
         st = path.stat()
-        mode_octal = oct(stat.S_IMODE(st.st_mode))[-4:]
+        mode_octal = f"{stat.S_IMODE(st.st_mode):04o}"
         
-        owner = "unknown"
-        group = "unknown"
+        owner = str(st.st_uid)
+        group = str(st.st_gid)
         
         # Resolve username and group if pwd/grp modules are available (Linux/POSIX)
         try:
             import pwd
-            import grp
             owner = pwd.getpwuid(st.st_uid).pw_name
+        except (ImportError, KeyError):
+            pass
+
+        try:
+            import grp
             group = grp.getgrgid(st.st_gid).gr_name
         except (ImportError, KeyError):
-            owner = str(st.st_uid)
-            group = str(st.st_gid)
+            pass
 
         return {
             "path": str(path),

@@ -68,7 +68,11 @@ log_success "File permissions relaxed: /etc/passwd set to 0666, world-writable t
 
 # 4. Inject Insecure User Accounts & Policies
 log_info "3/6 Modifying user accounts and password expiration policies..."
-if [ -f /etc/login.defs ]; login_defs_bak="/etc/login.defs.bak"; [ ! -f "$login_defs_bak" ] && cp /etc/login.defs "$login_defs_bak"; sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs; fi
+if [ -f /etc/login.defs ]; then
+    login_defs_bak="/etc/login.defs.bak"
+    [ ! -f "$login_defs_bak" ] && cp /etc/login.defs "$login_defs_bak"
+    sed -i 's/^PASS_MAX_DAYS.*/PASS_MAX_DAYS   99999/' /etc/login.defs
+fi
 
 # Unlock root password if locked
 passwd -u root 2>/dev/null || true
