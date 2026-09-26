@@ -55,6 +55,8 @@ To ensure the security tool itself did not introduce vulnerabilities, a STRIDE t
 4. **Phase 4 (Scoring & Reporting):** Designed the mathematical scoring algorithm and the HTML/JSON report generators.
 5. **Phase 5 (Hardening & Rollback):** Developed the interactive remediation fixers and the transactional backup engine.
 6. **Phase 6 (Lab Testing):** Created the automated benchmark harness and vulnerable VM setup scripts to prove the tool's efficacy.
+7. **Phase 7 (Web Dashboard & API):** Integrated a `FastAPI` backend and a modern web interface to control audits and remediations remotely.
+8. **Phase 8 (Threat Intelligence):** Developed an Anomaly Detection module acting as a lightweight IDS, parsing logs for statistical deviations (e.g., brute-force spikes).
 
 ---
 

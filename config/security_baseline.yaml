@@ -25,6 +25,9 @@ categories:
   patch_security:
     name: "Patch & Vulnerability Management"
     weight: 5
+  threat_intel:
+    name: "Threat Intelligence & Anomaly Detection"
+    weight: 10
   logging_security:
     name: "Logging & Accounting"
     weight: 10
@@ -316,3 +319,22 @@ checks:
     severity: "MEDIUM"
     failure_threshold: 25
     remediable: false
+
+  # ==========================================
+  # Category: Threat Intelligence & Anomaly Detection
+  # ==========================================
+  - id: "THREAT-001"
+    category: "threat_intel"
+    title: "Detect anomalous login patterns in auth logs"
+    description: "Check for statistically anomalous login times or unusual locations."
+    severity: "HIGH"
+    remediable: false
+    expected: 0
+
+  - id: "THREAT-002"
+    category: "threat_intel"
+    title: "Track unusual or dormant accounts"
+    description: "Detect activity from usually dormant accounts."
+    severity: "HIGH"
+    remediable: false
+    expected: 0

@@ -121,7 +121,16 @@ python secureaudit.py --verbose audit
 
 ---
 
-## 9. Testing
+## 9. Major Project Expansions (Phases 7 & 8)
+
+`secureaudit` has been upgraded with enterprise-grade features:
+
+* **REST API & Web Dashboard (Phase 7):** A `FastAPI` backend offering endpoints for auditing and hardening, paired with a modern Web UI. Run `secureaudit serve` to launch the dashboard.
+* **Threat Intelligence & Anomaly Detection (Phase 8):** A new statistical detection module (`AnomalyAuditModule`) that parses system authentication logs acting as a mini-IDS to flag brute-force attacks and unusual login frequencies.
+
+---
+
+## 10. Testing
 Run the automated test suite with:
 ```bash
 pytest tests/ -v
@@ -130,7 +139,7 @@ All 49 unit and integration tests pass with 100% compliance.
 
 ---
 
-## 10. Documentation Roadmap
+## 11. Documentation Roadmap
 
 Comprehensive documentation for all 8 project phases is available in the `docs/` folder:
 

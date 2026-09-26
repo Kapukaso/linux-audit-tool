@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureAudit Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --card-bg: #fff;
+            --primary-color: #2c3e50;
+            --secondary-color: #18bc9c;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --success-color: #27ae60;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1.5rem 2rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            color: white;
+        }
+
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-primary:hover { background-color: #1a252f; }
+        
+        .btn-action { background-color: var(--secondary-color); }
+        .btn-action:hover { background-color: #128f76; }
+
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        .score-display {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 0 auto 1rem;
+            color: white;
+            background-color: #ccc;
+        }
+
+        .risk-level {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .category-card {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 1rem;
+            background-color: #f9f9f9;
+        }
+        
+        .category-card h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress {
+            height: 100%;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>SecureAudit Dashboard</h1>
+    <p>Linux Security Hardening and Automated Security Audit Toolkit</p>
+</header>
+
+<div class="container">
+    <div class="controls">
+        <button class="btn-primary" onclick="fetchScore()">Load Current Score</button>
+        <button class="btn-action" onclick="runAudit()">Run Full Audit</button>
+        <button class="btn-danger" onclick="runHarden()">Harden System (Dry Run)</button>
+    </div>
+
+    <div id="loading">Processing request, please wait...</div>
+
+    <div class="card" id="resultsCard" style="display: none;">
+        <div class="score-display">
+            <h2>Overall Security Score</h2>
+            <div class="score-circle" id="scoreCircle">0</div>
+            <div class="risk-level" id="riskLevel">Risk: Unknown</div>
+            <p id="summaryText"></p>
+        </div>
+
+        <h3>Category Breakdown</h3>
+        <div class="categories" id="categoryList">
+            <!-- Categories injected here -->
+        </div>
+    </div>
+</div>
+
+<script>
+    const loading = document.getElementById('loading');
+    const resultsCard = document.getElementById('resultsCard');
+
+    function showLoading() {
+        loading.style.display = 'block';
+        resultsCard.style.display = 'none';
+    }
+
+    function hideLoading() {
+        loading.style.display = 'none';
+        resultsCard.style.display = 'block';
+    }
+
+    function getColorForScore(score) {
+        if (score >= 80) return 'var(--success-color)';
+        if (score >= 50) return 'var(--warning-color)';
+        return 'var(--danger-color)';
+    }
+
+    function updateDashboard(data) {
+        if (data.status !== 'success') {
+            alert('Error: ' + data.message);
+            return;
+        }
+
+        const score = data.overall_score || 0;
+        const circle = document.getElementById('scoreCircle');
+        circle.textContent = score;
+        circle.style.backgroundColor = getColorForScore(score);
+
+        document.getElementById('riskLevel').textContent = `Risk Level: ${data.risk_level || 'Unknown'}`;
+        
+        if (data.summary) {
+            document.getElementById('summaryText').textContent = 
+                `${data.summary.total} Checks Executed (${data.summary.passed} Passed, ${data.summary.failed} Failed)`;
+        }
+
+        const catList = document.getElementById('categoryList');
+        catList.innerHTML = '';
+        
+        if (data.category_scores) {
+            for (const [id, cat] of Object.entries(data.category_scores)) {
+                const percent = cat.total > 0 ? (cat.passed / cat.total) * 100 : 0;
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.innerHTML = `
+                    <h3>${cat.name}</h3>
+                    <p>Score: ${cat.score.toFixed(1)}% (${cat.passed}/${cat.total} passed)</p>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: ${percent}%; background-color: ${getColorForScore(cat.score)}"></div>
+                    </div>
+                `;
+                catList.appendChild(card);
+            }
+        }
+        hideLoading();
+    }
+
+    async function fetchScore() {
+        showLoading();
+        try {
+            const res = await fetch('/api/score');
+            const data = await res.json();
+            updateDashboard(data);
+        } catch (err) {
+            alert('Failed to load score');
+            hideLoading();
+        }
+    }
+
+    async function runAudit() {
+        showLoading();
+        try {
+            const res = await fetch('/api/audit', { method: 'POST' });
+            const data = await res.json();
+            updateDashboard(data);
+        } catch (err) {
+            alert('Failed to run audit');
+            hideLoading();
+        }
+    }
+
+    async function runHarden() {
+        showLoading();
+        try {
+            const res = await fetch('/api/harden', { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dry_run: true }) 
+            });
+            const data = await res.json();
+            hideLoading();
+            if (data.status === 'success') {
+                alert(`Hardening Simulation Complete!\nActions Planned: ${data.actions_planned}\nEstimated Post-Score: ${data.post_score}`);
+                fetchScore();
+            } else {
+                alert('Hardening Error: ' + data.message);
+            }
+        } catch (err) {
+            alert('Failed to run hardening');
+            hideLoading();
+        }
+    }
+</script>
+
+</body>
+</html>

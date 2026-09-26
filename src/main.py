@@ -85,6 +85,11 @@ def create_parser() -> argparse.ArgumentParser:
         help="Report format to export"
     )
 
+    # Command: serve
+    serve_parser = subparsers.add_parser("serve", help="Run the FastAPI web dashboard and API server")
+    serve_parser.add_argument("--host", default="0.0.0.0", help="Host IP to bind to")
+    serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind to")
+
     return parser
 
 
@@ -261,6 +266,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         except Exception as exc:
             logger.error(f"Hardening execution failed: {exc}")
             return 1
+
+    if args.command == "serve":
+        from src.api.main import run_server
+        print(f"\n[*] Starting SecureAudit Web Dashboard on http://{args.host}:{args.port}...")
+        run_server(host=args.host, port=args.port)
+        return 0
 
     return 0
 

@@ -20,6 +20,7 @@ from src.modules.service_audit import ServiceAuditModule
 from src.modules.ssh_audit import SshAuditModule
 from src.modules.system_info import SystemInfoCollector
 from src.modules.user_audit import UserAuditModule
+from src.modules.anomaly_audit import AnomalyAuditModule
 
 logger = AuditLogger.get_logger()
 
@@ -65,6 +66,7 @@ class AuditEngine:
             "service_security": ServiceAuditModule,
             "patch_security": PatchAuditModule,
             "logging_security": LoggingAuditModule,
+            "threat_intel": AnomalyAuditModule,
         }
 
         for cat, mod_cls in module_mapping.items():
