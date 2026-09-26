@@ -224,7 +224,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"\n[-] Error: Command execution failed: {exc}")
         return 1
 
-    elif args.command == "harden":
+    if args.command == "harden":
         from src.hardening.manager import HardeningManager
         is_dry = getattr(args, "dry_run", False)
         auto_confirm = getattr(args, "yes", False)
