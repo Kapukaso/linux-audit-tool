@@ -27,7 +27,7 @@ def get_baseline_manager():
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     # Render the dashboard
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html", context={"request": request})
 
 @app.post("/api/audit")
 async def run_audit():
