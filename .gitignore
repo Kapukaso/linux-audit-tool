@@ -49,3 +49,4 @@ reports/*.html
 reports/*.txt
 !reports/.gitkeep
 backups/
+/docs/
