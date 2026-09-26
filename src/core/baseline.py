@@ -1,6 +1,6 @@
 """
 Security baseline loader and schema validator.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Features:
 - Robust YAML parsing using safe_load

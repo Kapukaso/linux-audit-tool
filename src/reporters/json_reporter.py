@@ -1,6 +1,6 @@
 """
 JSON Report Generator Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Exports audit findings, system metadata, category scores, and overall metrics to structured JSON.
 """

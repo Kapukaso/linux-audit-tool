@@ -1,6 +1,6 @@
 """
 SSH Hardening Remediation Handler.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Safely updates SSH directives with syntax verification (sshd -t) and transactional rollback.
 """

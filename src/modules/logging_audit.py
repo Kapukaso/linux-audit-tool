@@ -1,6 +1,6 @@
 """
 Logging & Authentication Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - LOG-001: System logging daemon (rsyslog / systemd-journald) active

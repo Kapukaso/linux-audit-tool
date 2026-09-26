@@ -1,6 +1,6 @@
 """
 Sysctl Kernel Network Hardening Remediation Handler.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Writes hardened kernel security parameters to /etc/sysctl.d/99-secureaudit.conf and applies them.
 """

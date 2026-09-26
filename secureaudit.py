@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Executable launcher for the Linux Security Hardening Toolkit.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import os

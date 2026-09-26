@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "benchmark_name": "SmartED Linux Hardening Baseline",
-  "author": "Kartik Soni",
+  "author": "Karthik Soni",
   "description": "Comprehensive CIS-aligned security baseline for Ubuntu/Debian Linux systems",
   "categories": {
     "system_info": {

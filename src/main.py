@@ -1,6 +1,6 @@
 """
 Main CLI entrypoint for the Linux Security Hardening Toolkit (secureaudit).
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import argparse
@@ -19,7 +19,7 @@ def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="secureaudit",
         description="Linux Security Hardening and Automated Security Audit Toolkit",
-        epilog="Academic Project for SmartED Cybersecurity Internship - Developed by Kartik Soni"
+        epilog="Academic Project for SmartED Cybersecurity Internship - Developed by Karthik Soni"
     )
 
     # Global options

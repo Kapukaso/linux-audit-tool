@@ -1,6 +1,6 @@
 """
 Services & Daemons Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - SRV-001: Obsolete legacy services masked or not running

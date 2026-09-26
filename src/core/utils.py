@@ -1,6 +1,6 @@
 """
 Security-conscious system utilities, safe subprocess execution, and privilege helpers.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Security Principles:
 - Never invoke shell=True on untrusted inputs

@@ -1,6 +1,6 @@
 """
 Service & Daemon Remediation Handler.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Stops and masks obsolete daemons (telnet, rsh, xinetd) and activates security services (rsyslog, auditd).
 """

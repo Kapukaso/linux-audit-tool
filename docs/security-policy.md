@@ -1,6 +1,6 @@
 # Organizational Linux Security Policy
 
-**Author / Maintainer:** Kartik Soni  
+**Author / Maintainer:** Karthik Soni  
 **Context:** SmartED Security Compliance Baseline  
 **Effective Date:** 2026-09-14  
 

@@ -1,6 +1,6 @@
 """
 Data models and enumeration types for the Linux Security Hardening Toolkit.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 from __future__ import annotations
@@ -128,7 +128,7 @@ class AuditReport:
     """Complete security audit report container."""
     tool_name: str = "secureaudit"
     tool_version: str = "1.0.0"
-    author: str = "Kartik Soni"
+    author: str = "Karthik Soni"
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     system_meta: SystemMeta = field(default_factory=SystemMeta)
     overall_score: float = 100.0

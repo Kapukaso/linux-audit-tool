@@ -1,6 +1,6 @@
 """
 Patch & Package Management Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - PTC-001: Pending security package updates

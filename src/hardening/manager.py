@@ -1,6 +1,6 @@
 """
 Hardening Subsystem Orchestrator.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Coordinates pre-checks, backup snapshotting, dry-run simulation, interactive confirmation,
 atomic remediation handlers, post-remediation audit evaluation, and rollback manifests.

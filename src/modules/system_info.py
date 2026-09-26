@@ -1,6 +1,6 @@
 """
 System Information Collector Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Collects hardware, OS, kernel, memory, disk, and network metadata without exposing
 sensitive environment credentials.

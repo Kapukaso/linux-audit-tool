@@ -1,6 +1,6 @@
 # Linux Security Hardening and Automated Security Audit Toolkit (`secureaudit`)
 
-**Author:** Kartik Soni  
+**Author:** Karthik Soni  
 **Academic Project:** SmartED Cybersecurity Internship Minor Project  
 **Target Environments:** Ubuntu 22.04/24.04 LTS, Debian 12, Kali Linux  
 

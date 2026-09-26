@@ -1,6 +1,6 @@
 """
 Automated Before/After Metrics & Benchmark Evaluation Harness for secureaudit.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Executes pre-hardening audit, runs hardening (or dry-run), executes post-hardening audit,
 and prints a comparative security posture matrix with metrics.
@@ -22,7 +22,7 @@ from src.hardening.manager import HardeningManager
 def main():
     print("=" * 80)
     print("  SECUREAUDIT — AUTOMATED BEFORE/AFTER METRICS BENCHMARK EVALUATOR")
-    print("  Author: Kartik Soni | SmartED Internship Minor Project")
+    print("  Author: Karthik Soni | SmartED Internship Minor Project")
     print("=" * 80 + "\n")
 
     baseline_mgr = BaselineManager("config/security_baseline.yaml")

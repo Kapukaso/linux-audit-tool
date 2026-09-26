@@ -1,6 +1,6 @@
 """
 Firewall Hardening Remediation Handler.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Safely configures UFW firewall while preventing administrator remote SSH lockout.
 """

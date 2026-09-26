@@ -1,6 +1,6 @@
 """
 Deterministic Security Scoring Engine.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Calculates:
 - Overall deterministic security score out of 100

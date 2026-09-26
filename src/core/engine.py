@@ -1,6 +1,6 @@
 """
 Audit Engine Orchestrator.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Coordinates execution across all inspection modules, aggregates findings, and prepares
 unscored AuditReport objects.

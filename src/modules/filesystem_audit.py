@@ -1,6 +1,6 @@
 """
 Filesystem Security Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - FS-001: Permissions & ownership of /etc/passwd

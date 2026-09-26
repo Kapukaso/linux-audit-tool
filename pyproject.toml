@@ -7,7 +7,7 @@ name = "secureaudit"
 version = "1.0.0"
 description = "Linux Security Hardening and Automated Security Audit Toolkit"
 authors = [
-    {name = "Kartik Soni", email = "kartik@example.com"}
+    {name = "Karthik Soni", email = "kartik@example.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.8"

@@ -1,6 +1,6 @@
 """
 Network & Port Security Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - NET-001: Unencrypted legacy service ports listening on external interfaces

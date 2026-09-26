@@ -1,6 +1,6 @@
 # Phase 8: Internship Report, Screenshot Execution Plan & Slide Deck
 
-**Author:** Kartik Soni  
+**Author:** Karthik Soni  
 **Project:** Linux Security Hardening and Automated Security Audit Toolkit (`secureaudit`)  
 **Context:** SmartED Cybersecurity Internship Minor Project Report  
 **Date:** September 14, 2026  
@@ -104,7 +104,7 @@ To document the live execution of `secureaudit` for internship evaluation, captu
 
 ### Slide 1: Title & Project Overview
 - **Title:** Linux Security Hardening and Automated Security Audit Toolkit (`secureaudit`)
-- **Presenter:** Kartik Soni
+- **Presenter:** Karthik Soni
 - **Context:** SmartED Cybersecurity Internship Minor Project
 - **Key Message:** A modular, non-destructive Python toolkit for automated Linux auditing and baseline hardening.
 

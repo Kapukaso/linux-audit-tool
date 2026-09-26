@@ -1,6 +1,6 @@
 """
 Pytest configuration and shared fixtures for the secureaudit test suite.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import sys

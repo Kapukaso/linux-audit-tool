@@ -1,6 +1,6 @@
 """
 Backup & Rollback Snapshot Engine.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Features:
 - Transactional snapshot backup before system configuration edits

@@ -1,6 +1,6 @@
 """
 Unit tests for the ScoringEngine and mathematical score evaluations.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import pytest

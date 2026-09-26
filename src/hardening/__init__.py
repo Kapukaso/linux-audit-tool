@@ -1,4 +1,4 @@
 """
 Hardening Subsystem for secureaudit.
-Author: Kartik Soni
+Author: Karthik Soni
 """

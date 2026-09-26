@@ -1,6 +1,6 @@
 """
 HTML Executive Report Generator Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Generates a single-file, self-contained HTML dashboard with responsive CSS visual scorecard,
 category progress bars, severity badges, and structured security findings.
@@ -122,7 +122,7 @@ class HtmlReporter:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linux Security Audit Report - Kartik Soni</title>
+    <title>Linux Security Audit Report - Karthik Soni</title>
     <style>
         :root {{
             --bg-color: #f8fafc;
@@ -275,7 +275,7 @@ class HtmlReporter:
     <div class="container">
         <header>
             <h1>Linux Security Audit & Baseline Report</h1>
-            <p>SmartED Internship Minor Project &bull; Candidate: Kartik Soni &bull; Scan Timestamp: {rep.timestamp}</p>
+            <p>SmartED Internship Minor Project &bull; Candidate: Karthik Soni &bull; Scan Timestamp: {rep.timestamp}</p>
         </header>
 
         <div class="grid-2">

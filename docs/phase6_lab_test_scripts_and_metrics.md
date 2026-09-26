@@ -1,6 +1,6 @@
 # Phase 6: Lab Test Scripts & Before/After Metrics Evaluation
 
-**Author:** Kartik Soni  
+**Author:** Karthik Soni  
 **Project:** Linux Security Hardening and Automated Security Audit Toolkit (`secureaudit`)  
 **Context:** SmartED Cybersecurity Internship Minor Project  
 **Target Environments:** Ubuntu 22.04 LTS Server / Debian 12 / Kali Linux 2024.x  

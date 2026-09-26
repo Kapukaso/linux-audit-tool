@@ -1,6 +1,6 @@
 """
 Unit tests for data models, sensitive logging redaction, and system utilities.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import os

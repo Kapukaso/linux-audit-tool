@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Script Name: setup_vulnerable_lab.sh
-# Author:      Kartik Soni
+# Author:      Karthik Soni
 # Description: Intentionally misconfigures an Ubuntu/Debian target VM to simulate
 #              a vulnerable system for testing secureaudit pre/post hardening metrics.
 # WARNING:     DO NOT RUN THIS SCRIPT ON PRODUCTION SYSTEMS!

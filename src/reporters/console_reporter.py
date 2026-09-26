@@ -1,6 +1,6 @@
 """
 Console & Text Report Generator Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Formats audit reports for high-contrast terminal display and plain text report files (report.txt).
 """
@@ -30,7 +30,7 @@ class ConsoleReporter:
 
         lines.append("=" * 80)
         lines.append("LINUX SECURITY HARDENING & AUTOMATED AUDIT REPORT")
-        lines.append("Author: Kartik Soni | SmartED Cybersecurity Minor Project")
+        lines.append("Author: Karthik Soni | SmartED Cybersecurity Minor Project")
         lines.append(f"Timestamp: {rep.timestamp}")
         lines.append("=" * 80)
 

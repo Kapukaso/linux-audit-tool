@@ -1,6 +1,6 @@
 """
 Unit tests for Audit Engine and all 8 inspection modules.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 from pathlib import Path

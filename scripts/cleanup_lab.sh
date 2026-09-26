@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Script Name: cleanup_lab.sh
-# Author:      Kartik Soni
+# Author:      Karthik Soni
 # Description: Removes vulnerable drop-in configurations, restores standard
 #              file permissions, and cleans up the test VM environment.
 # ==============================================================================

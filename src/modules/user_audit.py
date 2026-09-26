@@ -1,6 +1,6 @@
 """
 User and Privilege Security Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - USR-001: Exclusivity of UID 0 to root

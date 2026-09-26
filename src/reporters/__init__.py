@@ -1,6 +1,6 @@
 """
 Report Generation Subsystem for secureaudit.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 from .console_reporter import ConsoleReporter

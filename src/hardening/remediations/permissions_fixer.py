@@ -1,6 +1,6 @@
 """
 Filesystem Permissions Remediation Handler.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Remediates POSIX permissions and ownership on critical system files and strips world-write bits.
 """

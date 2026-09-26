@@ -1,6 +1,6 @@
 """
 Edge Case & Error Handling Unit Tests for secureaudit.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Covers edge cases, corrupt inputs, permission errors, missing files,
 and defensive programming boundaries across core and hardening subsystems.

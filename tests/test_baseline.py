@@ -1,6 +1,6 @@
 """
 Unit tests for BaselineManager and baseline validation.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import pytest

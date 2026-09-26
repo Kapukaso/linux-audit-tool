@@ -1,7 +1,7 @@
 # Phase 3: Audit Engine & Inspection Modules
 
 **Project Title:** Linux Security Hardening and Automated Security Audit Toolkit (`secureaudit`)  
-**Author:** Kartik Soni  
+**Author:** Karthik Soni  
 **Context:** SmartED Cybersecurity Internship Minor Project  
 
 ---

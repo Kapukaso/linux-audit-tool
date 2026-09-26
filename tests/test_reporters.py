@@ -1,6 +1,6 @@
 """
 Unit tests for JSON, HTML, and Console reporters.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 import json
@@ -70,7 +70,7 @@ def test_html_reporter_export(evaluated_sample_report, tmp_path):
 
     html_content = out_file.read_text(encoding="utf-8")
     assert "<!DOCTYPE html>" in html_content
-    assert "Kartik Soni" in html_content
+    assert "Karthik Soni" in html_content
     assert "SSH-001" in html_content
     assert "FW-001" in html_content
 

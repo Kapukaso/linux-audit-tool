@@ -1,6 +1,6 @@
 """
 Unit tests for Hardening Subsystem, BackupManager, and Rollback Engine.
-Author: Kartik Soni
+Author: Karthik Soni
 """
 
 from pathlib import Path

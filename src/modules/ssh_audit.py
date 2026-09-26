@@ -1,6 +1,6 @@
 """
 SSH Security Audit Module.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Checks:
 - SSH-001: PermitRootLogin set to no

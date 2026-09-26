@@ -1,4 +1,4 @@
 """
 Remediation handlers for automated hardening.
-Author: Kartik Soni
+Author: Karthik Soni
 """

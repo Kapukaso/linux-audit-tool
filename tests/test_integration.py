@@ -1,6 +1,6 @@
 """
 Integration & End-to-End CLI Tests for secureaudit.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Tests full subcommand CLI execution, argument parsing routing, report file generation,
 and system-info collection via the main entrypoint.

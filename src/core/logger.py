@@ -1,6 +1,6 @@
 """
 Security-conscious logging system for the Linux Security Hardening Toolkit.
-Author: Kartik Soni
+Author: Karthik Soni
 
 Features:
 - Redaction of sensitive strings (passwords, private keys, hashes, tokens)

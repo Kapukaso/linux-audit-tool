@@ -4,7 +4,7 @@
 **Auditor:** Automated Codebase Analysis (4-agent parallel deep scan)  
 **Scope:** All source files (`src/`), tests (`tests/`), scripts (`scripts/`), config (`config/`), and root files  
 **Project:** SecureAudit — Linux Security Hardening & Automated Audit Toolkit  
-**Author:** Kartik Soni (SmartED Cybersecurity Internship)
+**Author:** Karthik Soni (SmartED Cybersecurity Internship)
 
 ---
 

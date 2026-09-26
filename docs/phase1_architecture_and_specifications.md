@@ -1,7 +1,7 @@
 # Phase 1: Project Specifications, System Architecture, & Threat Model
 
 **Project Title:** Linux Security Hardening and Automated Security Audit Toolkit (`secureaudit`)  
-**Author / Candidate:** Kartik Soni  
+**Author / Candidate:** Karthik Soni  
 **Context:** SmartED Cybersecurity Internship Minor Project  
 **Target OS:** Ubuntu 22.04 / 24.04 LTS, Debian 12, Kali Linux (Validation Environment)  
 
