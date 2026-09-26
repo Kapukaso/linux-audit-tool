@@ -112,12 +112,12 @@ class SshAuditModule:
         if not config_p.exists():
             skip_msg = "SSH server configuration not found; assuming SSH is not installed."
             return [
-                AuditFinding(check_id="SSH-001", category="ssh_security", title="Ensure SSH Root Login is disabled", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence=f"Missing {self.config_path}"),
-                AuditFinding(check_id="SSH-002", category="ssh_security", title="Ensure SSH Password Authentication is restricted", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence=""),
-                AuditFinding(check_id="SSH-003", category="ssh_security", title="Ensure SSH PermitEmptyPasswords is set to no", severity=Severity.CRITICAL, status=Status.SKIP, description=skip_msg, evidence=""),
-                AuditFinding(check_id="SSH-004", category="ssh_security", title="Ensure SSH MaxAuthTries is set to 4 or fewer", severity=Severity.MEDIUM, status=Status.SKIP, description=skip_msg, evidence=""),
-                AuditFinding(check_id="SSH-005", category="ssh_security", title="Ensure SSH X11Forwarding is disabled", severity=Severity.LOW, status=Status.SKIP, description=skip_msg, evidence=""),
-                AuditFinding(check_id="SSH-006", category="ssh_security", title="Ensure SSH Protocol version is strictly 2", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence="")
+                AuditFinding(check_id="SSH-001", category="ssh_security", title="Ensure SSH Root Login is disabled", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence=f"Missing {self.config_path}", recommendation="Install openssh-server."),
+                AuditFinding(check_id="SSH-002", category="ssh_security", title="Ensure SSH Password Authentication is restricted", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence="", recommendation="Install openssh-server."),
+                AuditFinding(check_id="SSH-003", category="ssh_security", title="Ensure SSH PermitEmptyPasswords is set to no", severity=Severity.CRITICAL, status=Status.SKIP, description=skip_msg, evidence="", recommendation="Install openssh-server."),
+                AuditFinding(check_id="SSH-004", category="ssh_security", title="Ensure SSH MaxAuthTries is set to 4 or fewer", severity=Severity.MEDIUM, status=Status.SKIP, description=skip_msg, evidence="", recommendation="Install openssh-server."),
+                AuditFinding(check_id="SSH-005", category="ssh_security", title="Ensure SSH X11Forwarding is disabled", severity=Severity.LOW, status=Status.SKIP, description=skip_msg, evidence="", recommendation="Install openssh-server."),
+                AuditFinding(check_id="SSH-006", category="ssh_security", title="Ensure SSH Protocol version is strictly 2", severity=Severity.HIGH, status=Status.SKIP, description=skip_msg, evidence="", recommendation="Install openssh-server.")
             ]
             
         findings = [
@@ -141,7 +141,8 @@ class SshAuditModule:
                     severity=Severity.HIGH, 
                     status=Status.SKIP, 
                     description="OpenSSH version >= 7.4 detected. Protocol 2 is implicitly enforced and the directive is obsolete.", 
-                    evidence="OpenSSH >= 7.4"
+                    evidence="OpenSSH >= 7.4",
+                    recommendation="No action required."
                 )
             )
             
